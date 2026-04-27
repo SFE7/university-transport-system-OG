@@ -1,0 +1,74 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\API;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\MembreResource;
+use App\Models\Membre;
+use App\Traits\ApiResponseTrait;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+
+class AuthController extends Controller
+{
+    use ApiResponseTrait;
+
+    public function register(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required',
+            'email' => 'required|email|unique:membres',
+            'password' => 'required|min:8|confirmed',
+            'role' => 'required|in:membre,conducteur',
+        ]);
+
+        $membre = Membre::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'],
+        ]);
+
+        $token = $membre->createToken('api_token')->plainTextToken;
+
+        return $this->success(
+            [
+                'token' => $token,
+                'membre' => new MembreResource($membre),
+            ],
+            'Registered successfully',
+            201
+        );
+    }
+
+    public function login(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => 'required',
+            'password' => 'required',
+        ]);
+
+        $membre = Membre::where('email', $validated['email'])->first();
+
+        if (!$membre || !Hash::check($validated['password'], $membre->password)) {
+            return $this->error('Invalid credentials', 401);
+        }
+
+        $token = $membre->createToken('api_token')->plainTextToken;
+
+        return $this->success([
+            'token' => $token,
+            'membre' => new MembreResource($membre),
+        ]);
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return $this->success(null, 'Logged out');
+    }
+}
