@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useTrajetStore } from '@/stores/trajetStore'
 import { useReservationStore } from '@/stores/reservationStore'
@@ -13,13 +13,57 @@ onMounted(() => {
   reservationStore.fetchMyReservations()
 })
 
-const myTrajets = computed(() => trajetStore.history)
+const myTrajets = computed(() => {
+  if (Array.isArray(trajetStore.history)) {
+    return trajetStore.history
+  }
+
+  const historyPayload = trajetStore.history as unknown as { data?: unknown }
+  return Array.isArray(historyPayload?.data) ? historyPayload.data : []
+})
+
+const showForm = ref(false)
+const formError = ref('')
+const newTrajet = ref({
+  departure_point: '',
+  arrival_point: '',
+  departure_time: '',
+  available_seats: 1,
+})
+
+const submitTrajet = async () => {
+  formError.value = ''
+  if (
+    !newTrajet.value.departure_point ||
+    !newTrajet.value.arrival_point ||
+    !newTrajet.value.departure_time
+  ) {
+    formError.value = 'Tous les champs sont obligatoires.'
+    return
+  }
+
+  try {
+    await trajetStore.create(newTrajet.value)
+    showForm.value = false
+    newTrajet.value = {
+      departure_point: '',
+      arrival_point: '',
+      departure_time: '',
+      available_seats: 1,
+    }
+    await trajetStore.fetchHistory()
+  } catch (e) {
+    formError.value = 'Erreur lors de la création du trajet.'
+  }
+}
 
 const pendingReservations = computed(() =>
-  reservationStore.reservations.filter(
-    (reservation) =>
-      reservation.status === 'pending' && reservation.trajet?.status === 'active'
-  )
+  Array.isArray(reservationStore.reservations)
+    ? reservationStore.reservations.filter(
+        (reservation) =>
+          reservation.status === 'pending' && reservation.trajet?.status === 'active'
+      )
+    : []
 )
 </script>
 
@@ -33,6 +77,24 @@ const pendingReservations = computed(() =>
     <div class="grid two">
       <section class="card">
         <h2>Mes trajets</h2>
+        <div v-if="showForm" style="margin-bottom: 1.5rem; padding: 1.5rem; background: var(--color-background-secondary); border-radius: var(--border-radius-lg); border: 1px solid var(--color-border-tertiary)">
+          <h3 style="margin: 0 0 1rem; font-size: 16px; font-weight: 500">Nouveau trajet</h3>
+          <div style="display: grid; gap: 0.75rem">
+            <input v-model="newTrajet.departure_point" placeholder="Point de départ" style="padding: 0.6rem 0.75rem; border-radius: var(--border-radius-md); border: 1px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); font-size: 14px" />
+            <input v-model="newTrajet.arrival_point" placeholder="Point d'arrivée" style="padding: 0.6rem 0.75rem; border-radius: var(--border-radius-md); border: 1px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); font-size: 14px" />
+            <input v-model="newTrajet.departure_time" type="datetime-local" style="padding: 0.6rem 0.75rem; border-radius: var(--border-radius-md); border: 1px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); font-size: 14px" />
+            <input v-model.number="newTrajet.available_seats" type="number" min="1" placeholder="Places disponibles" style="padding: 0.6rem 0.75rem; border-radius: var(--border-radius-md); border: 1px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); font-size: 14px" />
+            <div style="display: flex; gap: 0.5rem">
+              <button @click="submitTrajet" style="padding: 0.6rem 1.25rem; background: #e85d24; color: white; border: none; border-radius: var(--border-radius-md); cursor: pointer; font-size: 14px">Créer</button>
+              <button @click="showForm = false" style="padding: 0.6rem 1.25rem; background: transparent; color: var(--color-text-secondary); border: 1px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; font-size: 14px">Annuler</button>
+            </div>
+            <p v-if="formError" style="color: var(--color-text-danger); font-size: 13px; margin: 0">{{ formError }}</p>
+          </div>
+        </div>
+
+        <button v-else @click="showForm = true" style="margin-bottom: 1rem; padding: 0.6rem 1.25rem; background: #e85d24; color: white; border: none; border-radius: var(--border-radius-md); cursor: pointer; font-size: 14px">
+          + Nouveau trajet
+        </button>
         <div v-if="trajetStore.isLoading" class="status">Chargement...</div>
         <div v-for="trajet in myTrajets" :key="trajet.id" class="card soft">
           <div class="tag-list">

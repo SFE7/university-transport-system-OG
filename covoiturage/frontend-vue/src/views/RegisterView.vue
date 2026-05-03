@@ -6,7 +6,13 @@ import { useAuthStore } from '@/stores/authStore'
 const authStore = useAuthStore()
 const router = useRouter()
 
-const form = ref({
+const form = ref<{
+  name: string
+  email: string
+  password: string
+  password_confirmation: string
+  role: 'membre' | 'conducteur'
+}>({
   name: '',
   email: '',
   password: '',

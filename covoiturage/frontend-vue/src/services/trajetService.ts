@@ -7,10 +7,8 @@ const getAll = async (filters?: {
   departure_time?: string
   available_seats?: number
 }): Promise<PaginatedResponse<Trajet>> => {
-  const response = await apiClient.get<PaginatedResponse<Trajet>>('/trajets', {
-    params: filters,
-  })
-  return response.data
+  const response = await apiClient.get('/trajets', { params: filters })
+  return response.data.data  // ← unwrap the Laravel envelope
 }
 
 const getOne = async (id: number): Promise<ApiResponse<Trajet>> => {
@@ -39,8 +37,8 @@ const cancel = async (id: number): Promise<ApiResponse<null>> => {
 }
 
 const getHistory = async (): Promise<PaginatedResponse<Trajet>> => {
-  const response = await apiClient.get<PaginatedResponse<Trajet>>('/trajets/history')
-  return response.data
+  const response = await apiClient.get('/trajets/history')
+  return response.data.data  // ← same fix
 }
 
 export default {

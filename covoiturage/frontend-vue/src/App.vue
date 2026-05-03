@@ -26,6 +26,11 @@ const handleLogout = async () => {
         <RouterLink v-if="authStore.isAuthenticated" to="/history">Historique</RouterLink>
         <RouterLink v-if="authStore.isAuthenticated" to="/notifications">Notifications</RouterLink>
         <RouterLink v-if="authStore.isConducteur" to="/dashboard">Dashboard</RouterLink>
+        <RouterLink v-if="authStore.isAuthenticated && ['chauffeur_bus', 'conducteur'].includes(authStore.membre?.role ?? '')" to="/bus/drive">Partager position</RouterLink>
+        <RouterLink v-if="authStore.isAuthenticated" to="/bus/map">Carte bus</RouterLink>
+        <RouterLink v-if="authStore.isAuthenticated" to="/bus/schedules">Horaires</RouterLink>
+        <RouterLink v-if="authStore.isAuthenticated" to="/compare">Comparer</RouterLink>
+        <RouterLink v-if="String(authStore.membre?.role) === 'admin'" to="/admin">Admin</RouterLink>
       </nav>
       <div class="auth-actions">
         <span class="welcome">Salut, {{ displayName }}</span>

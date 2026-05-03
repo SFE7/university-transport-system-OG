@@ -28,6 +28,27 @@ const routes = [
     component: () => import('@/views/NotificationsView.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/bus/map',
+    component: () => import('@/views/BusMapView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/bus/drive',
+    component: () => import('@/views/BusChauffeurView.vue'),
+    meta: { requiresAuth: true },
+  },
+  { path: '/bus/schedules', component: () => import('@/views/BusSchedulesView.vue') },
+  {
+    path: '/compare',
+    component: () => import('@/views/ComparisonView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/admin',
+    component: () => import('@/views/AdminDashboardView.vue'),
+    meta: { requiresAuth: true, adminOnly: true },
+  },
 ]
 
 const router = createRouter({
@@ -43,6 +64,9 @@ router.beforeEach((to, _from, next) => {
     return next('/login')
   }
   if (to.meta.conducteurOnly && !authStore.isConducteur) {
+    return next('/trajets')
+  }
+  if (to.meta.adminOnly && String(authStore.membre?.role) !== 'admin') {
     return next('/trajets')
   }
   if (to.meta.guest && authStore.isAuthenticated) {

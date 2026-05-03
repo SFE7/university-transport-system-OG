@@ -42,7 +42,7 @@ const canReview = computed(() =>
 const handleSubmit = async () => {
   feedback.value = ''
   if (!form.value.trajet_id && reviewableReservations.value.length) {
-    form.value.trajet_id = reviewableReservations.value[0].trajet_id
+    form.value.trajet_id = reviewableReservations.value[0]?.trajet_id ?? 0
   }
   try {
     await avisStore.create({

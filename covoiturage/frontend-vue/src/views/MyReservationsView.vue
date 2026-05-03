@@ -4,7 +4,7 @@ import { useReservationStore } from '@/stores/reservationStore'
 
 const reservationStore = useReservationStore()
 
-const canCancel = (status) => status === 'pending' || status === 'accepted'
+const canCancel = (status: string) => status === 'pending' || status === 'accepted'
 
 onMounted(() => {
   reservationStore.fetchMyReservations()
