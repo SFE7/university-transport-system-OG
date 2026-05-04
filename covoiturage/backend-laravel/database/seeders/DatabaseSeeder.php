@@ -15,11 +15,25 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
+        // basic user for local testing
+        User::firstOrCreate([
             'email' => 'test@example.com',
+        ], [
+            'name' => 'Test User',
+            'email_verified_at' => now(),
+            'password' => bcrypt('password'),
+        ]);
+
+        // run application seeders
+        $this->call([
+            MembreSeeder::class,
+            LigneBusSeeder::class,
+            TrajetSeeder::class,
+            ReservationSeeder::class,
+            AvisSeeder::class,
+            IncidentBusSeeder::class,
+            BusPositionSeeder::class,
+            NotificationSeeder::class,
         ]);
     }
 }
