@@ -95,9 +95,35 @@ onMounted(async () => {
 
 <style scoped>
 .schedule-page {
+  --schedule-ink: #1f1a13;
+  --schedule-muted: #5f5548;
+  --schedule-border: #d9c9b6;
+  --schedule-card-bg: rgba(255, 252, 247, 0.94);
+  --schedule-chip-bg: #1f4f77;
+  --schedule-chip-fg: #f8fbff;
+  --schedule-empty-bg: #e8edf5;
+  --schedule-empty-fg: #314866;
+
   min-height: 100vh;
   padding: 1rem;
   background: linear-gradient(145deg, #fff6e6, #eef8ff 40%, #ffffff);
+  color: var(--schedule-ink);
+}
+
+.schedule-page h1 {
+  margin: 0;
+  color: var(--schedule-ink);
+}
+
+.schedule-page p,
+.schedule-page li,
+.schedule-page strong,
+.schedule-page h3 {
+  color: var(--schedule-ink);
+}
+
+.schedule-page header p {
+  color: var(--schedule-muted);
 }
 
 .day-filter {
@@ -108,8 +134,9 @@ onMounted(async () => {
 }
 
 .day-btn {
-  border: 1px solid #d7c2a7;
-  background: #fff;
+  border: 1px solid var(--schedule-border);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--schedule-ink);
   border-radius: 10px;
   padding: 0.45rem;
   cursor: pointer;
@@ -128,10 +155,14 @@ onMounted(async () => {
 }
 
 .ligne-card {
-  border: 1px solid #e1d8cb;
+  border: 1px solid var(--schedule-border);
   border-radius: 14px;
   padding: 0.9rem;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--schedule-card-bg);
+}
+
+.ligne-card p {
+  color: var(--schedule-muted);
 }
 
 .stops ul {
@@ -147,8 +178,8 @@ onMounted(async () => {
 }
 
 .chip {
-  background: #11304f;
-  color: #fff;
+  background: var(--schedule-chip-bg);
+  color: var(--schedule-chip-fg);
   border-radius: 999px;
   padding: 0.22rem 0.65rem;
   font-size: 0.85rem;
@@ -156,8 +187,8 @@ onMounted(async () => {
 
 .chip.muted,
 .muted {
-  background: #e8edf5;
-  color: #42526b;
+  background: var(--schedule-empty-bg);
+  color: var(--schedule-empty-fg);
 }
 
 .error {

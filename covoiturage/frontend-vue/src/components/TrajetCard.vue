@@ -11,7 +11,7 @@ const conducteurName = computed(() => props.trajet.conducteur?.name || 'Conducte
 <template>
   <RouterLink class="card trajet-card" :to="`/trajets/${trajet.id}`">
     <div class="trajet-header">
-      <div>
+      <div class="trajet-route">
         <h3 class="trajet-title">{{ trajet.departure_point }} -> {{ trajet.arrival_point }}</h3>
         <p class="muted">Depart: {{ trajet.departure_time }}</p>
       </div>
@@ -29,9 +29,11 @@ const conducteurName = computed(() => props.trajet.conducteur?.name || 'Conducte
 
 <style scoped>
 .trajet-card {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 18px;
   transition: all 0.2s ease;
 }
 
@@ -49,19 +51,31 @@ const conducteurName = computed(() => props.trajet.conducteur?.name || 'Conducte
 
 .trajet-header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
+}
+
+.trajet-route {
+  min-width: 0;
+}
+
+.trajet-route .muted {
+  margin: 0;
 }
 
 .trajet-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
 }
 
 .hint {
   font-weight: 600;
   color: var(--accent);
+  text-align: right;
 }
 
 [data-tip] {
@@ -86,5 +100,17 @@ const conducteurName = computed(() => props.trajet.conducteur?.name || 'Conducte
 
 [data-tip]:hover::after {
   opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .trajet-header,
+  .trajet-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hint {
+    text-align: left;
+  }
 }
 </style>

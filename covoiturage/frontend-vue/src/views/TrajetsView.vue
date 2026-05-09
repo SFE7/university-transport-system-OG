@@ -67,8 +67,14 @@ onMounted(() => {
     <div v-if="trajetStore.isLoading" class="status">Chargement des trajets...</div>
     <div v-if="trajetStore.error" class="status">{{ trajetStore.error }}</div>
 
-    <div class="grid three">
+    <div class="grid three trajets-grid">
       <TrajetCard v-for="trajet in trajetStore.trajets" :key="trajet.id" :trajet="trajet" />
     </div>
   </section>
 </template>
+
+<style scoped>
+.trajets-grid {
+  align-items: stretch;
+}
+</style>

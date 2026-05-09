@@ -105,9 +105,14 @@ onUnmounted(() => {
 
 <style scoped>
 .map-page {
+  --map-ink: #1f1a13;
+  --map-muted: #2f5376;
+  --map-border: #bfd8ea;
+
   min-height: 100vh;
   background: linear-gradient(160deg, #f7fff2, #e3f2ff 55%, #fffdf7);
   padding: 1rem;
+  color: var(--map-ink);
 }
 
 .head h1 {
@@ -117,14 +122,15 @@ onUnmounted(() => {
 
 .head p {
   margin-top: 0.5rem;
-  color: #365577;
+  color: var(--map-muted);
 }
 
 .map {
   height: calc(100vh - 9rem);
-  border-radius: 16px;
+  border-radius: 24px;
   overflow: hidden;
-  border: 1px solid #bfd8ea;
+  border: 1px solid var(--map-border);
+  box-shadow: 0 16px 40px rgba(43, 80, 114, 0.14);
 }
 
 .toast-stack {
@@ -141,7 +147,7 @@ onUnmounted(() => {
 .toast {
   background: #0a6339;
   color: #fff;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 0.7rem 0.95rem;
   box-shadow: 0 12px 30px rgba(10, 99, 57, 0.2);
   animation: slideIn 280ms ease;

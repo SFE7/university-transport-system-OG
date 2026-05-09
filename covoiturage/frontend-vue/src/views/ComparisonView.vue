@@ -72,9 +72,26 @@ const submit = async () => {
 
 <style scoped>
 .compare-page {
+  --compare-ink: #1f1a13;
+  --compare-muted: #5f5548;
+  --compare-border: #dccfbe;
+  --compare-card-bg: rgba(255, 252, 247, 0.94);
+
   min-height: 100vh;
   padding: 1rem;
   background: radial-gradient(circle at 20% 20%, #eaf4ff, #fff7e6 40%, #fff);
+  color: var(--compare-ink);
+}
+
+.compare-page h1,
+.compare-page h3,
+.compare-page p,
+.compare-page strong {
+  color: var(--compare-ink);
+}
+
+.compare-page header p {
+  color: var(--compare-muted);
 }
 
 .search {
@@ -82,11 +99,15 @@ const submit = async () => {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.55rem;
+  border: 1px solid var(--compare-border);
+  border-radius: 22px;
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .search input,
 .search button {
-  border-radius: 10px;
+  border-radius: 14px;
   border: 1px solid #d7dde8;
   padding: 0.65rem;
 }
@@ -110,6 +131,7 @@ const submit = async () => {
   background: #ffd16f;
   padding: 0.35rem 0.8rem;
   font-weight: 700;
+  color: #5c3a00;
 }
 
 .grid {
@@ -124,10 +146,10 @@ const submit = async () => {
 }
 
 .card {
-  border: 1px solid #e2d8c9;
-  border-radius: 12px;
-  padding: 0.75rem;
-  background: #fff;
+  border: 1px solid var(--compare-border);
+  border-radius: 20px;
+  padding: 0.85rem;
+  background: var(--compare-card-bg);
 }
 
 .error {
