@@ -22,6 +22,8 @@ export interface HoraireBus {
   departure_time: string
   days: string[]
   is_active: boolean
+  chauffeur_id?: number
+  chauffeur?: import('./index').Membre | null
 }
 
 export interface BusPosition {

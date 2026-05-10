@@ -15,8 +15,13 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
-            $table->enum('role', ['membre', 'conducteur'])->default('membre');
+            $table->enum('role', ['membre', 'conducteur', 'chauffeur_bus', 'admin'])->default('membre');
             $table->string('phone')->nullable();
+            $table->boolean('is_banned')->default(false);
+            $table->string('account_type')->nullable();
+            $table->string('carte_etudiante_path')->nullable();
+            $table->boolean('has_verified_documents')->default(false);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

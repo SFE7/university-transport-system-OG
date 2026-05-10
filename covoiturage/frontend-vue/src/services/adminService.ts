@@ -16,8 +16,20 @@ const deleteMembre = async (id: number): Promise<ApiResponse<null>> => {
   return response.data
 }
 
+const suspendMember = async (id: number, reason: string): Promise<ApiResponse<Membre>> => {
+  const response = await apiClient.post<ApiResponse<Membre>>(`/admin/membres/${id}/suspend`, { reason })
+  return response.data
+}
+
+const banMember = async (id: number, reason: string): Promise<ApiResponse<Membre>> => {
+  const response = await apiClient.post<ApiResponse<Membre>>(`/admin/membres/${id}/ban`, { reason })
+  return response.data
+}
+
 export default {
   getMembres,
   updateRole,
   deleteMembre,
+  suspendMember,
+  banMember,
 }

@@ -27,6 +27,9 @@ class DatabaseSeeder extends Seeder
         // run application seeders
         $this->call([
             MembreSeeder::class,
+            VehiculeSeeder::class,
+            DocumentSoumisSeeder::class,
+            SignalementSeeder::class,
             LigneBusSeeder::class,
             TrajetSeeder::class,
             ReservationSeeder::class,

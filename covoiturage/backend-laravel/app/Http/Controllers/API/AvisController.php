@@ -32,4 +32,36 @@ class AvisController extends Controller
 
         return $this->success(new AvisResource($avis), 'Avis créé', 201);
     }
+
+    public function update(StoreAvisRequest $request, int $id): JsonResponse
+    {
+        $avis = \App\Models\Avis::findOrFail($id);
+
+        // only reviewer can update
+        if ($avis->reviewer_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $validated = $request->validated();
+
+        $avis->rating = $validated['rating'];
+        $avis->comment = $validated['comment'] ?? null;
+        $avis->save();
+
+        return $this->success(new AvisResource($avis), 'Avis mis a jour');
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $avis = \App\Models\Avis::findOrFail($id);
+
+        // only reviewer can delete
+        if ($avis->reviewer_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $avis->delete();
+
+        return $this->success(null, 'Avis supprime');
+    }
 }

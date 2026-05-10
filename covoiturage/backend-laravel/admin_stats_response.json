@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+Host: 127.0.0.1:8000
+Connection: close
+X-Powered-By: PHP/8.2.12
+Cache-Control: no-cache, private
+Date: Sat, 09 May 2026 14:13:37 GMT
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+
+{"data":{"membres":{"total":57,"actifs":57,"bannis":0,"par_role":[{"role":"admin","total":1},{"role":"chauffeur_bus","total":10},{"role":"conducteur","total":5},{"role":"membre","total":41}]},"trajets":{"total":30,"actifs":30,"complets":0,"annules":0},"reservations":{"total":39,"en_attente":14,"acceptees":11},"bus":{"lignes":5,"chauffeurs":10,"incidents":3},"signalements":{"total":30,"en_attente":12},"documents":{"en_attente":12,"approuves":14,"rejetes":6}},"message":"success","status":200}

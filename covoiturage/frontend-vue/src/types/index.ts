@@ -2,8 +2,10 @@ export interface Membre {
   id: number
   name: string
   email: string
-  role: 'membre' | 'conducteur'
+  role: 'membre' | 'conducteur' | 'chauffeur_bus' | 'admin'
   phone: string | null
+  is_suspended?: boolean
+  is_banned?: boolean
   created_at: string
 }
 

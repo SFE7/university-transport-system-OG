@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\MembreResource;
+use App\Models\Membre;
+use App\Services\AuthService;
 use App\Services\AdminMembreService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +19,7 @@ class AdminMembreController extends Controller
 
     public function __construct(
         private readonly AdminMembreService $service
+        , private readonly AuthService $authService
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -50,5 +54,31 @@ class AdminMembreController extends Controller
         $this->service->delete($membre);
 
         return $this->success(null, 'Membre supprime');
+    }
+
+    public function sendCredentials(int $id): JsonResponse
+    {
+        $membre = $this->service->getOne($id);
+        abort_if($membre->role !== 'chauffeur_bus', 422);
+
+        $this->authService->sendChauffeurCredentials($membre);
+
+        return $this->success(null, 'Identifiants envoyés par email');
+    }
+
+    public function toggleSuspend(int $id): JsonResponse
+    {
+        $membre = $this->service->getOne($id);
+        $membre = $this->service->toggleSuspend($membre);
+
+        return $this->success(new MembreResource($membre));
+    }
+
+    public function ban(int $id): JsonResponse
+    {
+        $membre = $this->service->getOne($id);
+        $membre = $this->service->ban($membre);
+
+        return $this->success(new MembreResource($membre), 'Membre banni');
     }
 }

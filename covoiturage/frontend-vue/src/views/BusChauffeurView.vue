@@ -83,19 +83,23 @@ onUnmounted(() => {
 <template>
   <section class="driver-page">
     <div class="hero">
-      <h1>Espace Chauffeur Bus</h1>
+      <h1 class="page-title">Espace Chauffeur Bus</h1>
       <p>
         {{ authStore.membre?.name }} peut partager sa position en direct avec les etudiants.
       </p>
     </div>
 
-    <div class="status-card" :class="{ active: isSharing }">
+    <div class="sharing-card" :class="{ active: isSharing }">
       <div class="indicator-wrap">
         <span class="indicator" />
-        <span>{{ shareLabel }}</span>
+        <span class="share-label">Position partagée en direct</span>
       </div>
+      <p class="share-state">{{ shareLabel }}</p>
       <p v-if="busStore.error" class="error">{{ busStore.error }}</p>
       <p v-if="geolocationError" class="error">{{ geolocationError }}</p>
+      <p v-if="lastPosition" class="coords">
+        Lat: {{ lastPosition.latitude }}, Lng: {{ lastPosition.longitude }}
+      </p>
     </div>
 
     <div class="actions">
@@ -108,74 +112,109 @@ onUnmounted(() => {
 <style scoped>
 .driver-page {
   min-height: 100vh;
-  padding: 2rem 1rem;
-  background: radial-gradient(circle at top left, #d4ffe9, #f6fbff 45%, #ffffff);
-  color: #123;
+  padding: 40px 24px;
+  max-width: 700px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .hero h1 {
   margin: 0;
-  font-size: clamp(1.8rem, 6vw, 2.6rem);
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  color: #ffe180;
 }
 
 .hero p {
-  margin-top: 0.75rem;
-  color: #3b4a66;
+  margin-top: 8px;
+  margin-bottom: 40px;
+  color: rgba(253, 249, 240, 0.6);
+  font-size: 14px;
+  text-align: center;
 }
 
-.status-card {
-  margin-top: 1.5rem;
-  border-radius: 18px;
-  border: 1px solid #d6dfeb;
-  padding: 1rem;
-  background: #fff;
+.sharing-card {
+  background: rgba(253, 249, 240, 0.08);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 225, 128, 0.2);
+  border-radius: 24px;
+  padding: 48px;
+  width: 100%;
+  text-align: center;
 }
 
 .indicator-wrap {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.75rem;
-  font-weight: 700;
+  justify-content: center;
 }
 
 .indicator {
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: #8d98ab;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #6ec47a;
 }
 
 .active .indicator {
-  background: #17b56a;
-  box-shadow: 0 0 0 0 rgba(23, 181, 106, 0.55);
+  box-shadow: 0 0 0 0 rgba(110, 196, 122, 0.45);
   animation: pulse 1.5s infinite;
+}
+
+.share-label {
+  color: #6ec47a;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.share-state {
+  margin: 14px 0 0;
+  color: rgba(253, 249, 240, 0.6);
+  font-size: 14px;
+}
+
+.coords {
+  margin-top: 20px;
+  color: rgba(253, 249, 240, 0.5);
+  font-size: 12px;
+  font-family: monospace;
 }
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(23, 181, 106, 0.55);
+    transform: scale(1);
+    opacity: 1;
   }
   70% {
-    box-shadow: 0 0 0 14px rgba(23, 181, 106, 0);
+    transform: scale(1.4);
+    opacity: 0;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(23, 181, 106, 0);
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
 .actions {
-  margin-top: 1rem;
+  margin-top: 24px;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.75rem;
+  gap: 16px;
+  width: 100%;
+  justify-items: center;
 }
 
 .btn {
-  border: 0;
-  border-radius: 12px;
-  padding: 0.9rem 1rem;
+  border-radius: 999px;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn:disabled {
@@ -184,27 +223,46 @@ onUnmounted(() => {
 }
 
 .primary {
-  background: #0e7a3f;
-  color: #fff;
+  background: #ffe180;
+  color: #1b3d2f;
+  font-size: 18px;
+  padding: 18px 48px;
+  width: 100%;
+  max-width: 320px;
 }
 
 .danger {
-  background: #d13838;
-  color: #fff;
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  color: #ff6b6b;
+  font-size: 15px;
+  padding: 14px 40px;
+  width: 100%;
+  max-width: 320px;
+  margin-top: 16px;
+}
+
+.primary:hover:not(:disabled) {
+  background: #9f9065;
+  color: #fdf9f0;
+}
+
+.danger:hover:not(:disabled) {
+  background: rgba(255, 107, 107, 0.3);
 }
 
 .error {
-  margin: 0.6rem 0 0;
-  color: #b1122a;
+  margin: 12px 0 0;
+  color: #ff6b6b;
 }
 
 @media (min-width: 760px) {
   .driver-page {
-    padding: 3rem;
+    padding: 40px 24px;
   }
 
   .actions {
-    grid-template-columns: repeat(2, minmax(0, 220px));
+    grid-template-columns: 1fr;
   }
 }
 </style>

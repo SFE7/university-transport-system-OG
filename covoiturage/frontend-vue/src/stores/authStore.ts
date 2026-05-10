@@ -39,6 +39,60 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const registerEtudiant = async (payload: FormData) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const response = await authService.registerEtudiant(payload)
+      token.value = response.data.token
+      membre.value = response.data.membre
+      localStorage.setItem(TOKEN_KEY, response.data.token)
+      localStorage.setItem(MEMBRE_KEY, JSON.stringify(response.data.membre))
+      return response
+    } catch (err: any) {
+      error.value = err?.response?.data?.message || 'Registration failed'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const registerProfessionnel = async (payload: FormData) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const response = await authService.registerProfessionnel(payload)
+      token.value = response.data.token
+      membre.value = response.data.membre
+      localStorage.setItem(TOKEN_KEY, response.data.token)
+      localStorage.setItem(MEMBRE_KEY, JSON.stringify(response.data.membre))
+      return response
+    } catch (err: any) {
+      error.value = err?.response?.data?.message || 'Registration failed'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const registerConducteur = async (payload: FormData) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const response = await authService.registerConducteur(payload)
+      token.value = response.data.token
+      membre.value = response.data.membre
+      localStorage.setItem(TOKEN_KEY, response.data.token)
+      localStorage.setItem(MEMBRE_KEY, JSON.stringify(response.data.membre))
+      return response
+    } catch (err: any) {
+      error.value = err?.response?.data?.message || 'Registration failed'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   const login = async (payload: { email: string; password: string }) => {
     isLoading.value = true
     error.value = null
@@ -73,6 +127,20 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const changePassword = async (payload: { current_password: string; password: string; password_confirmation: string }) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const response = await authService.changePassword(payload)
+      return response
+    } catch (err: any) {
+      error.value = err?.response?.data?.message || 'Change password failed'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   const initFromStorage = () => {
     const storedToken = localStorage.getItem(TOKEN_KEY)
     const storedMembre = localStorage.getItem(MEMBRE_KEY)
@@ -92,8 +160,12 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading,
     error,
     register,
+    registerEtudiant,
+    registerProfessionnel,
+    registerConducteur,
     login,
     logout,
+    changePassword,
     initFromStorage,
     isAuthenticated,
     isConducteur,

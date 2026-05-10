@@ -94,10 +94,10 @@ onUnmounted(() => {
       <div v-for="toast in toasts" :key="toast.id" class="toast">{{ toast.message }}</div>
     </div>
 
-    <header class="head">
+    <div class="overlay-panel head">
       <h1>Bus en direct</h1>
       <p>Suivi en temps reel autour des campus de Tunis.</p>
-    </header>
+    </div>
 
     <div ref="mapEl" class="map" />
   </section>
@@ -105,32 +105,29 @@ onUnmounted(() => {
 
 <style scoped>
 .map-page {
-  --map-ink: #1f1a13;
-  --map-muted: #2f5376;
-  --map-border: #bfd8ea;
-
   min-height: 100vh;
-  background: linear-gradient(160deg, #f7fff2, #e3f2ff 55%, #fffdf7);
-  padding: 1rem;
-  color: var(--map-ink);
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  color: #fdf9f0;
 }
 
 .head h1 {
   margin: 0;
-  font-size: clamp(1.5rem, 5vw, 2.2rem);
+  font-size: 28px;
+  color: #ffe180;
 }
 
 .head p {
-  margin-top: 0.5rem;
-  color: var(--map-muted);
+  margin-top: 8px;
+  color: rgba(253, 249, 240, 0.6);
+  font-size: 14px;
 }
 
 .map {
-  height: calc(100vh - 9rem);
-  border-radius: 24px;
-  overflow: hidden;
-  border: 1px solid var(--map-border);
-  box-shadow: 0 16px 40px rgba(43, 80, 114, 0.14);
+  width: 100%;
+  height: calc(100vh - 80px);
+  border-radius: 0;
 }
 
 .toast-stack {
@@ -145,12 +142,29 @@ onUnmounted(() => {
 }
 
 .toast {
-  background: #0a6339;
-  color: #fff;
+  background: rgba(253, 249, 240, 0.08);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 225, 128, 0.2);
+  color: #fdf9f0;
   border-radius: 16px;
   padding: 0.7rem 0.95rem;
-  box-shadow: 0 12px 30px rgba(10, 99, 57, 0.2);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
   animation: slideIn 280ms ease;
+}
+
+.overlay-panel {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 900;
+  background: rgba(253, 249, 240, 0.08);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 225, 128, 0.2);
+  border-radius: 20px;
+  padding: 20px 24px;
+  max-width: 360px;
 }
 
 @keyframes slideIn {
@@ -165,12 +179,8 @@ onUnmounted(() => {
 }
 
 @media (min-width: 900px) {
-  .map-page {
-    padding: 1.5rem 2rem;
-  }
-
   .map {
-    height: calc(100vh - 10rem);
+    height: calc(100vh - 80px);
   }
 }
 </style>

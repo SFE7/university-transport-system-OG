@@ -21,6 +21,10 @@ class Membre extends Authenticatable
         'password',
         'role',
         'phone',
+        'is_banned',
+        'account_type',
+        'carte_etudiante_path',
+        'has_verified_documents',
     ];
 
     protected $hidden = [
@@ -65,5 +69,25 @@ class Membre extends Authenticatable
     public function horaires(): HasMany
     {
         return $this->hasMany(HoraireBus::class, 'chauffeur_id');
+    }
+
+    public function documentsSoumis(): HasMany
+    {
+        return $this->hasMany(DocumentSoumis::class, 'membre_id');
+    }
+
+    public function signalementsReporter(): HasMany
+    {
+        return $this->hasMany(Signalement::class, 'reporter_id');
+    }
+
+    public function signalementsReported(): HasMany
+    {
+        return $this->hasMany(Signalement::class, 'reported_id');
+    }
+
+    public function vehicule(): HasOne
+    {
+        return $this->hasOne(Vehicule::class, 'conducteur_id');
     }
 }

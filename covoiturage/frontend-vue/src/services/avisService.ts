@@ -16,7 +16,24 @@ const create = async (payload: {
   return response.data
 }
 
+const update = async (id: number, payload: {
+  conducteur_id: number
+  trajet_id: number
+  rating: number
+  comment?: string
+}): Promise<ApiResponse<Avis>> => {
+  const response = await apiClient.put<ApiResponse<Avis>>(`/avis/${id}`, payload)
+  return response.data
+}
+
+const remove = async (id: number): Promise<ApiResponse<null>> => {
+  const response = await apiClient.delete<ApiResponse<null>>(`/avis/${id}`)
+  return response.data
+}
+
 export default {
   getByConducteur,
   create,
+  update,
+  delete: remove,
 }

@@ -49,9 +49,9 @@ onMounted(async () => {
 
 <template>
   <section class="schedule-page">
-    <header>
-      <h1>Horaires des Bus</h1>
-      <p>Choisissez un jour pour voir les passages prevus.</p>
+    <header class="page-header">
+      <h1 class="page-title">Horaires des Bus</h1>
+      <p class="page-subtitle">Choisissez un jour pour voir les passages prevus.</p>
     </header>
 
     <div class="day-filter">
@@ -70,9 +70,9 @@ onMounted(async () => {
     <p v-if="ligneStore.isLoading" class="muted">Chargement...</p>
 
     <div v-if="loaded" class="ligne-list">
-      <article v-for="ligne in ligneStore.lignes" :key="ligne.id" class="ligne-card">
-        <h3>{{ ligne.name }}</h3>
-        <p>{{ ligne.description || 'Sans description' }}</p>
+      <article v-for="ligne in ligneStore.lignes" :key="ligne.id" class="glass ligne-card">
+        <h3 class="section-title">{{ ligne.name }}</h3>
+        <p class="line-desc">{{ ligne.description || 'Sans description' }}</p>
 
         <div class="stops">
           <strong>Arrets</strong>
@@ -95,74 +95,78 @@ onMounted(async () => {
 
 <style scoped>
 .schedule-page {
-  --schedule-ink: #1f1a13;
-  --schedule-muted: #5f5548;
-  --schedule-border: #d9c9b6;
-  --schedule-card-bg: rgba(255, 252, 247, 0.94);
-  --schedule-chip-bg: #1f4f77;
-  --schedule-chip-fg: #f8fbff;
-  --schedule-empty-bg: #e8edf5;
-  --schedule-empty-fg: #314866;
-
   min-height: 100vh;
-  padding: 1rem;
-  background: linear-gradient(145deg, #fff6e6, #eef8ff 40%, #ffffff);
-  color: var(--schedule-ink);
+  padding: 40px 24px;
+  max-width: 700px;
+  margin: 0 auto;
 }
 
-.schedule-page h1 {
+.page-header {
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.page-title {
   margin: 0;
-  color: var(--schedule-ink);
+  color: #ffe180;
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
 }
 
-.schedule-page p,
-.schedule-page li,
-.schedule-page strong,
-.schedule-page h3 {
-  color: var(--schedule-ink);
-}
-
-.schedule-page header p {
-  color: var(--schedule-muted);
+.page-subtitle {
+  margin-top: 8px;
+  color: rgba(253, 249, 240, 0.6);
+  font-size: 14px;
+  text-align: center;
 }
 
 .day-filter {
-  margin: 1rem 0 1.2rem;
+  margin: 0 0 1.2rem;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 0.4rem;
 }
 
 .day-btn {
-  border: 1px solid var(--schedule-border);
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--schedule-ink);
-  border-radius: 10px;
-  padding: 0.45rem;
+  border: 1px solid rgba(253, 249, 240, 0.12);
+  background: rgba(253, 249, 240, 0.06);
+  color: rgba(253, 249, 240, 0.6);
+  border-radius: 999px;
+  padding: 8px 12px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .day-btn.active {
-  background: #d9711b;
-  border-color: #d9711b;
-  color: #fff;
+  background: #ffe180;
+  border-color: #ffe180;
+  color: #1b3d2f;
+  font-weight: 700;
+}
+
+.day-btn:hover:not(.active) {
+  border-color: rgba(255, 225, 128, 0.4);
+  color: #fdf9f0;
 }
 
 .ligne-list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.9rem;
+  gap: 16px;
 }
 
 .ligne-card {
-  border: 1px solid var(--schedule-border);
-  border-radius: 14px;
-  padding: 0.9rem;
-  background: var(--schedule-card-bg);
+  border-radius: 20px;
+  padding: 24px;
 }
 
 .ligne-card p {
-  color: var(--schedule-muted);
+  color: rgba(253, 249, 240, 0.6);
+}
+
+.line-desc {
+  margin-top: 8px;
 }
 
 .stops ul {
@@ -178,30 +182,46 @@ onMounted(async () => {
 }
 
 .chip {
-  background: var(--schedule-chip-bg);
-  color: var(--schedule-chip-fg);
+  background: rgba(255, 225, 128, 0.15);
+  color: #ffe180;
+  border: 1px solid rgba(255, 225, 128, 0.3);
   border-radius: 999px;
-  padding: 0.22rem 0.65rem;
-  font-size: 0.85rem;
+  padding: 4px 10px;
+  font-size: 12px;
 }
 
 .chip.muted,
 .muted {
-  background: var(--schedule-empty-bg);
-  color: var(--schedule-empty-fg);
+  background: rgba(253, 249, 240, 0.06);
+  color: rgba(253, 249, 240, 0.4);
 }
 
 .error {
-  color: #bf1336;
+  color: #ff6b6b;
+}
+
+.section-title {
+  color: #9f9065;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
 }
 
 @media (min-width: 960px) {
   .schedule-page {
-    padding: 2rem;
+    padding: 40px 24px;
   }
 
   .ligne-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .day-filter {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 </style>
