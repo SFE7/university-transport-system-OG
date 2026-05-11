@@ -33,6 +33,8 @@ const editingHoraireId = ref<number | null>(null)
 const membres = ref<Membre[]>([])
 const membreError = ref<string | null>(null)
 
+watch(membres, (val) => console.log('membres changed:', val), { immediate: true })
+
 const rejectReason = ref('')
 const rejectingDocId = ref<number | null>(null)
 
@@ -44,9 +46,17 @@ const chauffeurRows = computed(() =>
 )
 
 const loadAll = async () => {
-  await Promise.all([ligneStore.fetchAll(), incidentStore.fetchAll()])
-  const membResp = await adminService.getMembres()
-  membres.value = membResp.data
+  try {
+    console.log('loadAll called')
+    await Promise.all([ligneStore.fetchAll(), incidentStore.fetchAll()])
+    const membResp = await adminService.getMembres()
+    console.log('membResp raw:', membResp)
+    membres.value = membResp.data
+    console.log('membres.value after assign:', membres.value)
+  } catch (err) {
+    console.error('Error loading admin data:', err)
+    throw err
+  }
 }
 
 // Watch route query param for tab

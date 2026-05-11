@@ -24,8 +24,8 @@ const routes = [
   { path: '/register/etudiant', component: () => import('@/views/RegisterEtudiantView.vue'), meta: { guest: true } },
   { path: '/register/professionnel', component: () => import('@/views/RegisterProfessionnelView.vue'), meta: { guest: true } },
   { path: '/register/conducteur', component: () => import('@/views/RegisterConducteurView.vue'), meta: { guest: true } },
-  { path: '/trajets', component: () => import('@/views/TrajetsView.vue'), meta: { allowedRoles: ['membre', 'conducteur', 'chauffeur_bus'] } },
-  { path: '/trajets/:id', component: () => import('@/views/TrajetDetailView.vue') },
+  { path: '/trajets', component: () => import('@/views/TrajetsView.vue'), meta: { allowedRoles: ['membre', 'conducteur'] } },
+  { path: '/trajets/:id', component: () => import('@/views/TrajetDetailView.vue'), meta: { allowedRoles: ['membre', 'conducteur'] } },
   {
     path: '/reservations',
     component: () => import('@/views/MyReservationsView.vue'),
@@ -39,7 +39,7 @@ const routes = [
   { path: '/membres/:id/avis', component: () => import('@/views/ConducteurProfileView.vue') },
   { path: '/profil', component: () => import('@/views/ProfilView.vue'), meta: { requiresAuth: true, allowedRoles: ['membre', 'conducteur'] } },
   { path: '/membres/profil/edit', component: () => import('@/views/EditProfilView.vue'), meta: { requiresAuth: true, allowedRoles: ['membre', 'conducteur'] } },
-  { path: '/profil/password', component: () => import('@/views/ChangePasswordView.vue'), meta: { requiresAuth: true, allowedRoles: ['membre', 'conducteur'] } },
+  { path: '/profil/password', component: () => import('@/views/ChangePasswordView.vue'), meta: { requiresAuth: true, allowedRoles: ['membre', 'conducteur', 'chauffeur_bus'] } },
   {
     path: '/history',
     component: () => import('@/views/TripHistoryView.vue'),
@@ -58,12 +58,12 @@ const routes = [
   {
     path: '/chauffeur/bus/map',
     component: () => import('@/views/BusMapView.vue'),
-    meta: { requiresAuth: true, allowedRoles: ['chauffeur_bus'] },
+    meta: { requiresAuth: true, allowedRoles: ['membre', 'conducteur'] },
   },
   {
     path: '/chauffeur/bus/schedules',
     component: () => import('@/views/BusSchedulesView.vue'),
-    meta: { requiresAuth: true, allowedRoles: ['chauffeur_bus'] },
+    meta: { requiresAuth: true, allowedRoles: ['membre', 'conducteur'] },
   },
   { path: '/bus/drive', redirect: '/chauffeur/bus' },
   { path: '/bus/map', redirect: '/chauffeur/bus/map' },

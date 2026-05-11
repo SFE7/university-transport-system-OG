@@ -42,9 +42,9 @@ const handleLogout = async () => {
           <RouterLink v-if="authStore.isAuthenticated" to="/history">Historique</RouterLink>
           <RouterLink v-if="authStore.isAuthenticated" to="/notifications">Notifications</RouterLink>
           <RouterLink v-if="authStore.isConducteur" to="/dashboard">Dashboard</RouterLink>
+          <RouterLink v-if="authStore.membre?.role === 'membre' || authStore.isConducteur" to="/chauffeur/bus/map">Carte bus</RouterLink>
+          <RouterLink v-if="authStore.membre?.role === 'membre' || authStore.isConducteur" to="/chauffeur/bus/schedules">Horaires</RouterLink>
           <RouterLink v-if="authStore.membre?.role === 'chauffeur_bus'" to="/chauffeur/bus">Partager position</RouterLink>
-          <RouterLink v-if="authStore.membre?.role === 'chauffeur_bus'" to="/chauffeur/bus/map">Carte bus</RouterLink>
-          <RouterLink v-if="authStore.membre?.role === 'chauffeur_bus'" to="/chauffeur/bus/schedules">Horaires</RouterLink>
           <!-- Comparer feature removed -->
         </template>
       </nav>

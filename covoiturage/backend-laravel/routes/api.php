@@ -31,33 +31,33 @@ Route::prefix('v1')->group(function () {
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
-        Route::patch('/auth/password', [AuthController::class, 'changePassword']);
+        Route::patch('/auth/password', [AuthController::class, 'changePassword'])->middleware('role:membre,conducteur,chauffeur_bus');
         Route::put('/membres/profil', [ProfilController::class, 'update']);
-        Route::put('/conducteurs/vehicule', [ProfilController::class, 'updateVehicule']);
+        Route::put('/conducteurs/vehicule', [ProfilController::class, 'updateVehicule'])->middleware('role:conducteur');
 
         Route::middleware('role:membre,conducteur')->group(function () {
             Route::post('/signalements', [SignalementController::class, 'store']);
         });
 
-        Route::post('/trajets',            [TrajetController::class, 'store']);
-        Route::get('/trajets/history',     [TrajetController::class, 'history']);
+        Route::post('/trajets',            [TrajetController::class, 'store'])->middleware('role:conducteur');
+        Route::get('/trajets/history',     [TrajetController::class, 'history'])->middleware('role:membre,conducteur');
         Route::put('/trajets/{id}',        [TrajetController::class, 'update'])->whereNumber('id');
         Route::delete('/trajets/{id}',     [TrajetController::class, 'destroy'])->whereNumber('id');
         Route::get('/trajets/{id}',        [TrajetController::class, 'show'])->whereNumber('id');
 
         Route::get('/reservations',                  [ReservationController::class, 'index']);
-        Route::post('/reservations',                 [ReservationController::class, 'store']);
+        Route::post('/reservations',                 [ReservationController::class, 'store'])->middleware('role:membre');
         Route::get('/reservations/{id}',             [ReservationController::class, 'show'])->whereNumber('id');
-        Route::delete('/reservations/{id}',          [ReservationController::class, 'destroy'])->whereNumber('id');
-        Route::patch('/reservations/{id}/accept',    [ReservationController::class, 'accept'])->whereNumber('id');
-        Route::patch('/reservations/{id}/refuse',    [ReservationController::class, 'refuse'])->whereNumber('id');
+        Route::delete('/reservations/{id}',          [ReservationController::class, 'destroy'])->whereNumber('id')->middleware('role:membre,conducteur');
+        Route::patch('/reservations/{id}/accept',    [ReservationController::class, 'accept'])->whereNumber('id')->middleware('role:conducteur');
+        Route::patch('/reservations/{id}/refuse',    [ReservationController::class, 'refuse'])->whereNumber('id')->middleware('role:conducteur');
 
-        Route::post('/avis',               [AvisController::class, 'store']);
-        Route::put('/avis/{id}',            [AvisController::class, 'update'])->whereNumber('id');
-        Route::delete('/avis/{id}',         [AvisController::class, 'destroy'])->whereNumber('id');
+        Route::post('/avis',               [AvisController::class, 'store'])->middleware('role:membre');
+        Route::put('/avis/{id}',            [AvisController::class, 'update'])->whereNumber('id')->middleware('role:membre');
+        Route::delete('/avis/{id}',         [AvisController::class, 'destroy'])->whereNumber('id')->middleware('role:membre');
 
-        Route::get('/notifications',               [NotificationController::class, 'index']);
-        Route::patch('/notifications/{id}/read',   [NotificationController::class, 'markAsRead']);
+        Route::get('/notifications',               [NotificationController::class, 'index'])->middleware('role:membre,conducteur');
+        Route::patch('/notifications/{id}/read',   [NotificationController::class, 'markAsRead'])->middleware('role:membre,conducteur');
     });
 
     // Sprint 2 public routes
@@ -69,7 +69,7 @@ Route::prefix('v1')->group(function () {
 
     // Sprint 2 protected routes
     Route::middleware('auth:sanctum')->group(function () {
-        Route::middleware('role:chauffeur_bus,conducteur')->group(function () {
+        Route::middleware('role:chauffeur_bus')->group(function () {
             Route::patch('/bus/position',        [BusPositionController::class, 'update']);
             Route::patch('/bus/position/stop',   [BusPositionController::class, 'stopSharing']);
         });
