@@ -55,7 +55,17 @@ export const useLigneStore = defineStore('lignes-bus', () => {
     }
   }
 
-  const create = async (payload: { name: string; description?: string }) => {
+  const create = async (payload: {
+    name: string
+    description?: string
+    color?: string
+    arrets?: Array<{
+      name: string
+      latitude: number
+      longitude: number
+      order: number
+    }>
+  }) => {
     isLoading.value = true
     error.value = null
     try {

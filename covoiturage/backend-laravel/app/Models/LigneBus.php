@@ -17,6 +17,7 @@ class LigneBus extends Model
     protected $fillable = [
         'name',
         'description',
+        'color',
         'is_active',
     ];
 

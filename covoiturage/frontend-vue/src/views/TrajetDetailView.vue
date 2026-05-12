@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useTrajetStore } from '@/stores/trajetStore'
 import { useReservationStore } from '@/stores/reservationStore'
+import { getCarPhotoUrl } from '@/utils/carPhoto'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -14,6 +15,19 @@ const actionMessage = ref('')
 const actionError = ref('')
 
 const trajetId = computed(() => Number(route.params.id))
+
+const photoUrl = computed(() => {
+  const trajet = trajetStore.currentTrajet
+  if (!trajet) {
+    return null
+  }
+
+  return (
+    trajet.car_photo_url ??
+    getCarPhotoUrl(trajet.car_category ?? '', trajet.car_model ?? '') ??
+    null
+  )
+})
 
 const canReserve = computed(() => {
   const trajet = trajetStore.currentTrajet
@@ -71,6 +85,9 @@ onMounted(() => {
           <span class="status-pill pending">{{ trajetStore.currentTrajet.available_seats }} places</span>
         </div>
       </div>
+      <div v-if="photoUrl" class="detail-photo">
+        <img :src="photoUrl" :alt="trajetStore.currentTrajet.car_model || 'Photo vehicule'" />
+      </div>
       <div class="divider"></div>
       <div class="grid two">
         <div>
@@ -82,6 +99,19 @@ onMounted(() => {
         <div>
           <h3>Membre ID</h3>
           <p class="muted">{{ trajetStore.currentTrajet.membre_id }}</p>
+        </div>
+        <div>
+          <h3>Vehicule</h3>
+          <p class="muted">
+            {{ trajetStore.currentTrajet.car_category || 'Categorie inconnue' }}
+            <span v-if="trajetStore.currentTrajet.car_model">
+              - {{ trajetStore.currentTrajet.car_model }}
+            </span>
+          </p>
+        </div>
+        <div>
+          <h3>Photo du vehicule</h3>
+          <p class="muted">{{ trajetStore.currentTrajet.car_photo_url ? 'Disponible' : 'Aucune photo' }}</p>
         </div>
       </div>
       <div class="form-actions">
@@ -113,6 +143,21 @@ onMounted(() => {
 .detail-card {
   padding: 20px 24px;
   border-radius: 16px;
+}
+
+.detail-photo {
+  margin: 18px 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(253, 249, 240, 0.12);
+  background: rgba(253, 249, 240, 0.05);
+}
+
+.detail-photo img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
 }
 
 .status-pill {

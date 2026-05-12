@@ -3,6 +3,7 @@
     <div class="glass-card">
       <h1 class="auth-title">Inscription Conducteur</h1>
       <p class="auth-subtitle">Complétez votre profil conducteur pour accéder à la plateforme.</p>
+      <div v-if="error" class="error-message">{{ error }}</div>
       <form @submit.prevent="submit">
         <div class="form-group">
           <label class="form-label">Nom complet</label>
@@ -34,7 +35,9 @@
           <input ref="file2" type="file" class="file-input" accept="image/*,.pdf" required />
           <span v-if="file2?.files?.[0]" class="file-name">{{ file2.files[0].name }}</span>
         </div>
-        <button class="primary-btn" type="submit">S'inscrire</button>
+        <button class="primary-btn" type="submit" :disabled="isLoading">
+          {{ isLoading ? 'Inscription en cours...' : "S'inscrire" }}
+        </button>
       </form>
       <p class="secondary-link">
         Vous avez déjà un compte? <RouterLink to="/login">Se connecter</RouterLink>
@@ -58,8 +61,14 @@ const password_confirmation = ref('')
 const phone = ref('')
 const file1 = ref<HTMLInputElement | null>(null)
 const file2 = ref<HTMLInputElement | null>(null)
+const isLoading = ref(false)
+const error = ref<string | null>(null)
 
 const submit = async () => {
+  error.value = null
+  isLoading.value = true
+
+  try {
   const fd = new FormData()
   fd.append('name', name.value)
   fd.append('email', email.value)
@@ -69,8 +78,13 @@ const submit = async () => {
   if (file1.value?.files?.[0]) fd.append('permis_conduire', file1.value.files[0])
   if (file2.value?.files?.[0]) fd.append('carte_grise', file2.value.files[0])
 
-  await auth.registerConducteur(fd)
-  router.push('/trajets')
+    await auth.registerConducteur(fd)
+    router.push('/trajets')
+  } catch (err: any) {
+    error.value = err?.response?.data?.message || err?.message || 'Erreur lors de l\'inscription. Veuillez réessayer.'
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -175,6 +189,16 @@ form {
   margin-top: 4px;
 }
 
+.error-message {
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  color: #fca5a5;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
 .primary-btn {
   background: #ffe180;
   color: #1b3d2f;
@@ -196,6 +220,11 @@ form {
 
 .primary-btn:active {
   transform: scale(0.98);
+}
+
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .secondary-link {

@@ -58,7 +58,6 @@ class BusPositionService
     public function getActivePositions(): Collection
     {
         return BusPosition::where('is_sharing', true)
-            ->where('updated_at', '>=', now()->subSeconds(30))
             ->with(['chauffeur:id,name'])
             ->get();
     }

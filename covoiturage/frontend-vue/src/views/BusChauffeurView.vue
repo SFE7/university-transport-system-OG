@@ -14,6 +14,35 @@ const geolocationError = ref<string | null>(null)
 
 const shareLabel = computed(() => (isSharing.value ? 'Partage en cours' : 'Partager ma position'))
 
+const geolocationOptions: PositionOptions = {
+  maximumAge: 10000,
+  enableHighAccuracy: true,
+  timeout: 15000,
+}
+
+const getPermissionState = async (): Promise<PermissionState | null> => {
+  try {
+    if (!('permissions' in navigator)) return null
+    const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName })
+    return status.state
+  } catch {
+    return null
+  }
+}
+
+const formatGeoError = (error: GeolocationPositionError): string => {
+  if (error.code === error.PERMISSION_DENIED) {
+    return 'Acces a la localisation refuse. Autorisez la position dans le navigateur.'
+  }
+  if (error.code === error.POSITION_UNAVAILABLE) {
+    return 'Position indisponible. Verifiez GPS/reseau puis reessayez.'
+  }
+  if (error.code === error.TIMEOUT) {
+    return 'La recuperation de la position a expire. Reessayez.'
+  }
+  return 'Impossible de recuperer votre position.'
+}
+
 const sendPosition = async () => {
   if (!lastPosition.value) {
     return
@@ -33,27 +62,59 @@ const startSharing = () => {
     return
   }
 
+  if (!window.isSecureContext) {
+    geolocationError.value = 'La geolocalisation requiert HTTPS ou localhost. Ouvrez l\'application sur un contexte securise.'
+    return
+  }
+
   if (isSharing.value) {
     return
   }
 
-  watchId.value = navigator.geolocation.watchPosition(
-    (pos) => {
-      lastPosition.value = {
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-      }
-    },
-    () => {
-      geolocationError.value = 'Impossible de recuperer votre position.'
-    },
-    { maximumAge: 0, enableHighAccuracy: true }
-  )
+  const startTracking = () => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        lastPosition.value = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }
 
-  shareIntervalId.value = window.setInterval(() => {
-    void sendPosition()
-  }, 3000)
-  isSharing.value = true
+        watchId.value = navigator.geolocation.watchPosition(
+          (watchPos) => {
+            lastPosition.value = {
+              latitude: watchPos.coords.latitude,
+              longitude: watchPos.coords.longitude,
+            }
+          },
+          (error) => {
+            geolocationError.value = formatGeoError(error)
+          },
+          geolocationOptions
+        )
+
+        void sendPosition()
+        shareIntervalId.value = window.setInterval(() => {
+          void sendPosition()
+        }, 3000)
+        isSharing.value = true
+      },
+      (error) => {
+        geolocationError.value = formatGeoError(error)
+      },
+      geolocationOptions
+    )
+  }
+
+  void (async () => {
+    const state = await getPermissionState()
+    if (state === 'denied') {
+      geolocationError.value = 'Acces a la localisation refuse. Activez-la dans les parametres du navigateur pour ce site.'
+      return
+    }
+
+    // 'prompt' should show browser permission popup; 'granted' starts directly.
+    startTracking()
+  })()
 }
 
 const stopSharing = async () => {

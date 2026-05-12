@@ -20,8 +20,8 @@ class RegisterConducteurRequest extends FormRequest
             'email' => 'required|email|unique:membres,email',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string',
-            'permis_conduire' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
-            'carte_grise' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'permis_conduire' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'carte_grise' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240',
         ];
     }
 }

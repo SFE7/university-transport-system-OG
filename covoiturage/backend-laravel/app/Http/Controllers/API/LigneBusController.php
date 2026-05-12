@@ -35,17 +35,53 @@ class LigneBusController extends Controller
 
     public function store(StoreLigneBusRequest $request): JsonResponse
     {
-        $ligne = $this->service->create($request->validated());
+        $data = $request->validated();
+        if (! isset($data['color']) || $data['color'] === '') {
+            $data['color'] = '#00c853';
+        }
+        $arrets = $data['arrets'] ?? null;
+        unset($data['arrets']);
+
+        $ligne = $this->service->create($data);
+
+        if (is_array($arrets) && count($arrets)) {
+            $ligne->arrets()->createMany($arrets);
+            $ligne->load(['arrets' => function ($q) { $q->orderBy('order'); }]);
+        }
 
         return $this->success($ligne, 'Ligne creee', 201);
     }
 
     public function update(StoreLigneBusRequest $request, int $id): JsonResponse
     {
+        $data = $request->validated();
+        if (array_key_exists('color', $data) && $data['color'] === '') {
+            $data['color'] = '#00c853';
+        }
+        $arrets = $data['arrets'] ?? null;
+        unset($data['arrets']);
+
         $ligne = $this->service->getOne($id);
-        $ligne = $this->service->update($ligne, $request->validated());
+        $ligne = $this->service->update($ligne, $data);
+
+        if (is_array($arrets)) {
+            // remove existing stops and recreate
+            $ligne->arrets()->delete();
+            if (count($arrets)) {
+                $ligne->arrets()->createMany($arrets);
+            }
+            $ligne->load(['arrets' => function ($q) { $q->orderBy('order'); }]);
+        }
 
         return $this->success($ligne, 'Ligne mise a jour');
+    }
+
+    public function toggleActive(int $id): JsonResponse
+    {
+        $ligne = $this->service->getOne($id);
+        $ligne = $this->service->toggleActive($ligne);
+
+        return $this->success($ligne, 'Statut mis à jour');
     }
 
     public function destroy(int $id): JsonResponse

@@ -22,6 +22,13 @@ const getSchedules = async (id: number, day?: string): Promise<ApiResponse<Horai
 const create = async (payload: {
   name: string
   description?: string
+  color?: string
+  arrets?: Array<{
+    name: string
+    latitude: number
+    longitude: number
+    order: number
+  }>
 }): Promise<ApiResponse<LigneBus>> => {
   const response = await apiClient.post<ApiResponse<LigneBus>>('/lignes', payload)
   return response.data

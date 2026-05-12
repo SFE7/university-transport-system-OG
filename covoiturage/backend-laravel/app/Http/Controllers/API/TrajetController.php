@@ -30,7 +30,7 @@ class TrajetController extends Controller
 
     public function store(StoreTrajetRequest $request): JsonResponse
     {
-        $trajet = $this->service->create($request->validated(), auth()->user());
+        $trajet = $this->service->create($request->validated(), $request->file('car_photo'), $request->user());
 
         return $this->success(new TrajetResource($trajet), 'Trajet créé', 201);
     }
@@ -45,22 +45,22 @@ class TrajetController extends Controller
     public function update(StoreTrajetRequest $request, int $id): JsonResponse
     {
         $trajet = $this->service->getOne($id);
-        $trajet = $this->service->update($trajet, $request->validated(), auth()->user());
+        $trajet = $this->service->update($trajet, $request->validated(), $request->user());
 
         return $this->success(new TrajetResource($trajet));
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
         $trajet = $this->service->getOne($id);
-        $this->service->cancel($trajet, auth()->user());
+        $this->service->cancel($trajet, $request->user());
 
         return $this->success(null, 'Trajet annulé');
     }
 
     public function history(Request $request): JsonResponse
     {
-        $trajets = $this->service->getHistory(auth()->user());
+        $trajets = $this->service->getHistory($request->user());
 
         return $this->success(TrajetResource::collection($trajets)->response()->getData(true));
     }

@@ -64,6 +64,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/bus/positions',             [BusPositionController::class, 'index']);
     Route::get('/lignes',                    [LigneBusController::class, 'index']);
     Route::get('/lignes/{id}',               [LigneBusController::class, 'show'])->whereNumber('id');
+    Route::get('/lignes/{id}/arrets',        function ($id) {
+        $arrets = \App\Models\ArretBus::where('ligne_bus_id', $id)->orderBy('order')->get();
+        return response()->json(['data' => $arrets]);
+    })->whereNumber('id');
     Route::get('/lignes/{id}/schedules',     [LigneBusController::class, 'schedules'])->whereNumber('id');
     Route::get('/incidents',                 [IncidentBusController::class, 'index']);
 
@@ -87,6 +91,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/lignes',                       [LigneBusController::class, 'store']);
             Route::put('/lignes/{id}',                   [LigneBusController::class, 'update'])->whereNumber('id');
             Route::delete('/lignes/{id}',                [LigneBusController::class, 'destroy'])->whereNumber('id');
+            Route::patch('/lignes/{id}/toggle',          [LigneBusController::class, 'toggleActive'])->whereNumber('id');
             // Arrets (stops)
             Route::post('/arrets',                       [\App\Http\Controllers\API\ArretBusController::class, 'store']);
             Route::put('/arrets/{id}',                   [\App\Http\Controllers\API\ArretBusController::class, 'update'])->whereNumber('id');

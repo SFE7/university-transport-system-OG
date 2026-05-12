@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Trajet } from '@/types'
+import { getCarPhotoUrl } from '@/utils/carPhoto'
 
 const props = defineProps<{ trajet: Trajet }>()
+const showPhoto = ref(true)
 
 const conducteurName = computed(() => props.trajet.conducteur?.name || 'Conducteur inconnu')
 
@@ -38,6 +40,21 @@ const formatDeparture = (value: string): string => {
 }
 
 const departureLabel = computed(() => formatDeparture(props.trajet.departure_time))
+
+const photoUrl = computed(
+  () =>
+    props.trajet.car_photo_url ??
+    getCarPhotoUrl(props.trajet.car_category ?? '', props.trajet.car_model ?? '') ??
+    null
+)
+
+watch(photoUrl, () => {
+  showPhoto.value = true
+})
+
+function onPhotoError() {
+  showPhoto.value = false
+}
 
 const statusMeta = computed(() => {
   switch (props.trajet.status) {
@@ -74,7 +91,14 @@ const statusMeta = computed(() => {
         </p>
         <span class="status-pill" :class="statusMeta.className">{{ statusMeta.label }}</span>
         <p class="meta-item muted">Conducteur: {{ conducteurName }}</p>
+        <p class="meta-item muted">
+          Vehicule: {{ trajet.car_category || 'Categorie inconnue' }}
+          <span v-if="trajet.car_model">- {{ trajet.car_model }}</span>
+        </p>
       </div>
+    </div>
+    <div v-if="photoUrl && showPhoto" class="trajet-card-photo">
+      <img :src="photoUrl" :alt="trajet.car_model || 'Photo vehicule'" @error="onPhotoError" />
     </div>
     <RouterLink class="details-btn" :to="`/trajets/${trajet.id}`">Voir détails</RouterLink>
   </article>
@@ -85,7 +109,7 @@ const statusMeta = computed(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
   width: 100%;
   padding: 20px 24px;
   transition: all 0.2s ease;
@@ -150,6 +174,8 @@ const statusMeta = computed(() => {
   align-items: center;
   justify-content: center;
   white-space: nowrap;
+  min-width: 120px;
+  flex-shrink: 0;
   border-radius: 999px;
   padding: 10px 16px;
   font-weight: 600;
@@ -168,6 +194,26 @@ const statusMeta = computed(() => {
 
 .details-btn:active {
   transform: scale(0.97);
+}
+
+.trajet-card-photo {
+  width: 160px;
+  min-width: 160px;
+  height: 90px;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(253, 249, 240, 0.12);
+  background: rgba(253, 249, 240, 0.05);
+  flex-shrink: 0;
+}
+
+.trajet-card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .status-active {
@@ -230,6 +276,12 @@ const statusMeta = computed(() => {
     flex-direction: column;
     align-items: flex-start;
     gap: 14px;
+  }
+
+  .trajet-card-photo {
+    width: 100%;
+    min-width: 0;
+    height: 180px;
   }
 
   .trajet-title {

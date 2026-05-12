@@ -15,6 +15,9 @@ export interface Trajet {
   arrival_point: string
   departure_time: string
   available_seats: number
+  car_category: string | null
+  car_model: string | null
+  car_photo_url: string | null
   status: 'active' | 'full' | 'cancelled' | 'completed'
   membre_id: number
   conducteur: Membre | null

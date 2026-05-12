@@ -20,7 +20,7 @@ class RegisterEtudiantRequest extends FormRequest
             'email' => 'required|email|unique:membres,email',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string',
-            'carte_etudiante' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'carte_etudiante' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240',
         ];
     }
 }

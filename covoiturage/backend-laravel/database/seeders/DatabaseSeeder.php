@@ -30,12 +30,9 @@ class DatabaseSeeder extends Seeder
             VehiculeSeeder::class,
             DocumentSoumisSeeder::class,
             SignalementSeeder::class,
-            LigneBusSeeder::class,
             TrajetSeeder::class,
             ReservationSeeder::class,
             AvisSeeder::class,
-            IncidentBusSeeder::class,
-            BusPositionSeeder::class,
             NotificationSeeder::class,
         ]);
     }

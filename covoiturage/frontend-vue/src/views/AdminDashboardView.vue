@@ -9,6 +9,7 @@ import { useStatistiquesStore } from '@/stores/statistiquesStore'
 import adminService from '@/services/adminService'
 import arretService from '@/services/arretService'
 import horaireService from '@/services/horaireService'
+import apiClient from '@/lib/apiClient'
 import type { Membre } from '@/types'
 
 const route = useRoute()
@@ -22,7 +23,7 @@ const statistiquesStore = useStatistiquesStore()
 const tab = ref<'lignes' | 'incidents' | 'chauffeurs' | 'arrets' | 'horaires' | 'documents' | 'signalements' | 'membres' | 'statistiques'>('lignes')
 const expandedLigne = ref<number | null>(null)
 
-const ligneForm = reactive({ name: '', description: '' })
+const ligneForm = reactive({ name: '', description: '', color: '#00c853', arrets: [] as Array<{ name: string; latitude: string; longitude: string; order: number }> })
 const incidentForm = reactive({ ligne_bus_id: 0, type: 'other', description: '' })
 const arretForm = reactive({ name: '', latitude: '', longitude: '', order: 0, ligne_bus_id: 0 })
 const editingArretId = ref<number | null>(null)
@@ -37,6 +38,9 @@ watch(membres, (val) => console.log('membres changed:', val), { immediate: true 
 
 const rejectReason = ref('')
 const rejectingDocId = ref<number | null>(null)
+const newArretForms = reactive<Record<number, { name: string; latitude: string; longitude: string }>>({})
+const editingInlineArret = reactive<Record<number, { id: number; name: string; latitude: string; longitude: string; order: number } | null>>({})
+const ligneColorDrafts = reactive<Record<number, string>>({})
 
 const chauffeurRows = computed(() =>
   membres.value.filter((m) => {
@@ -109,6 +113,86 @@ const deleteArret = async (id: number) => {
   await ligneStore.fetchAll()
 }
 
+const getSortedArrets = (ligne: any) => (ligne?.arrets || []).slice().sort((a: any, b: any) => a.order - b.order)
+
+const getLigneColorDraft = (ligne: any) => {
+  const fallback = ligne?.color || '#00c853'
+  if (!ligneColorDrafts[ligne.id]) {
+    ligneColorDrafts[ligne.id] = fallback
+  }
+  return ligneColorDrafts[ligne.id]
+}
+
+const saveLigneColor = async (ligne: any) => {
+  const color = ligneColorDrafts[ligne.id] || '#00c853'
+  try {
+    await ligneStore.update(ligne.id, { color })
+    await ligneStore.fetchAll()
+  } catch (err) {
+    console.error('Erreur mise a jour couleur:', err)
+    alert('Impossible de sauvegarder la couleur de la ligne.')
+  }
+}
+
+const ensureNewArretForm = (ligneId: number) => {
+  if (!newArretForms[ligneId]) {
+    newArretForms[ligneId] = { name: '', latitude: '', longitude: '' }
+  }
+  return newArretForms[ligneId]
+}
+
+const addInlineArret = async (ligneId: number) => {
+  const form = ensureNewArretForm(ligneId)
+  if (!form.name || !form.latitude || !form.longitude) {
+    alert('Veuillez remplir nom, latitude et longitude')
+    return
+  }
+
+  const ligne = ligneStore.lignes.find((l) => l.id === ligneId)
+  const maxOrder = (ligne?.arrets || []).reduce((max, a) => Math.max(max, Number(a.order) || 0), -1)
+
+  await arretService.create({
+    name: form.name,
+    latitude: Number(form.latitude),
+    longitude: Number(form.longitude),
+    order: maxOrder + 1,
+    ligne_bus_id: ligneId,
+  })
+
+  newArretForms[ligneId] = { name: '', latitude: '', longitude: '' }
+  await ligneStore.fetchAll()
+}
+
+const startEditInlineArret = (ligneId: number, arret: any) => {
+  editingInlineArret[ligneId] = {
+    id: arret.id,
+    name: arret.name,
+    latitude: String(arret.latitude),
+    longitude: String(arret.longitude),
+    order: Number(arret.order),
+  }
+}
+
+const cancelEditInlineArret = (ligneId: number) => {
+  editingInlineArret[ligneId] = null
+}
+
+const saveInlineArret = async (ligneId: number) => {
+  const editing = editingInlineArret[ligneId]
+  if (!editing) return
+
+  await arretService.update(editing.id, {
+    name: editing.name,
+    latitude: Number(editing.latitude),
+    longitude: Number(editing.longitude),
+    order: editing.order,
+    ligne_bus_id: ligneId,
+  })
+
+  editingInlineArret[ligneId] = null
+  await ligneStore.fetchAll()
+}
+
 const submitHoraire = async () => {
   const payload = {
     ligne_bus_id: Number(horaireForm.ligne_bus_id),
@@ -143,10 +227,38 @@ const deleteHoraire = async (id: number) => {
   await ligneStore.fetchAll()
 }
 
+const addStopRow = () => {
+  const nextOrder = ligneForm.arrets.length ? Math.max(...ligneForm.arrets.map(a => a.order)) + 1 : 1
+  ligneForm.arrets.push({ name: '', latitude: '', longitude: '', order: nextOrder })
+}
+
+const removeStopRow = (index: number) => {
+  ligneForm.arrets.splice(index, 1)
+  // reassign order values sequentially starting at 1
+  ligneForm.arrets.forEach((a, idx) => a.order = idx + 1)
+}
+
 const submitLigne = async () => {
-  await ligneStore.create({ name: ligneForm.name, description: ligneForm.description || undefined })
+  if (!ligneForm.name) return alert('Nom de la ligne requis')
+  if (!Array.isArray(ligneForm.arrets) || ligneForm.arrets.length < 2) return alert('Veuillez ajouter au moins 2 arrêts')
+
+  const payload = {
+    name: ligneForm.name,
+    description: ligneForm.description || undefined,
+    color: ligneForm.color || '#00c853',
+    arrets: ligneForm.arrets.map(a => ({
+      name: a.name,
+      latitude: Number(a.latitude),
+      longitude: Number(a.longitude),
+      order: Number(a.order),
+    })),
+  }
+
+  await ligneStore.create(payload)
   ligneForm.name = ''
   ligneForm.description = ''
+  ligneForm.color = '#00c853'
+  ligneForm.arrets = []
 }
 
 const submitIncident = async () => {
@@ -168,6 +280,15 @@ const deleteIncident = async (id: number) => {
 
 const deleteLigne = async (id: number) => {
   await ligneStore.delete(id)
+}
+
+const toggleLigne = async (id: number) => {
+  try {
+    await apiClient.patch(`/lignes/${id}/toggle`)
+    await ligneStore.fetchAll()
+  } catch (err) {
+    console.error('Erreur toggle ligne:', err)
+  }
 }
 
 const setRole = async (membreId: number, role: string) => {
@@ -258,23 +379,75 @@ onMounted(async () => {
       <form class="inline-form" @submit.prevent="submitLigne">
         <input v-model="ligneForm.name" type="text" placeholder="Nom de la ligne" required />
         <input v-model="ligneForm.description" type="text" placeholder="Description" />
-        <button type="submit" class="primary-btn">Nouvelle ligne</button>
+        <label class="color-field">
+          <span>Couleur de la ligne</span>
+          <input v-model="ligneForm.color" type="color" />
+        </label>
+        <button type="button" class="ghost-btn" @click.prevent="addStopRow">Ajouter un arrêt</button>
+        <button type="submit" class="primary-btn">Publier la ligne</button>
+
+        <div v-if="ligneForm.arrets.length" class="stops-panel">
+          <h4>Arrêts de la ligne</h4>
+          <div v-for="(stop, idx) in ligneForm.arrets" :key="idx" class="stop-row">
+            <input v-model="stop.name" placeholder="Nom de l'arrêt" required />
+            <input v-model="stop.latitude" placeholder="Latitude" required />
+            <input v-model="stop.longitude" placeholder="Longitude" required />
+            <input v-model.number="stop.order" type="number" min="1" placeholder="Ordre" required />
+            <button type="button" class="danger-btn small" @click="removeStopRow(idx)">x</button>
+          </div>
+        </div>
       </form>
 
       <article v-for="ligne in ligneStore.lignes" :key="ligne.id" class="row">
         <div>
-          <h4>{{ ligne.name }}</h4>
+          <h4 class="ligne-title"><span class="ligne-color-dot" :style="{ backgroundColor: ligne.color || '#00c853' }" />{{ ligne.name }}</h4>
+          <div class="line-meta">
+            <span class="muted">{{ (ligne.arrets || []).length }} arrêts</span>
+            <span class="muted">&middot;</span>
+            <span class="muted">{{ (ligne.arrets && ligne.arrets.length) ? `${ligne.arrets[0]?.name} → ${ligne.arrets[ligne.arrets.length-1]?.name}` : '' }}</span>
+            <span class="muted">&middot;</span>
+            <span class="muted">{{ ligne.next_departure ? `Prochain départ: ${ligne.next_departure}` : 'Aucun départ aujourd\'hui' }}</span>
+          </div>
           <span class="status-pill" :class="ligne.is_active ? 'active' : 'cancelled'">{{ ligne.is_active ? 'active' : 'inactive' }}</span>
         </div>
         <div class="row-actions">
+          <button type="button" :class="ligne.is_active ? 'danger-btn small' : 'approve-btn small'" @click="toggleLigne(ligne.id)">{{ ligne.is_active ? 'Désactiver' : 'Activer' }}</button>
           <button type="button" class="primary-btn small" @click="expandedLigne = expandedLigne === ligne.id ? null : ligne.id">Details</button>
           <button type="button" class="danger-btn small" @click="deleteLigne(ligne.id)">Supprimer</button>
         </div>
-        <ul v-if="expandedLigne === ligne.id" class="details">
-          <li v-for="arret in (ligne.arrets || []).slice().sort((a, b) => a.order - b.order)" :key="arret.id">
-            {{ arret.order + 1 }}. {{ arret.name }}
-          </li>
-        </ul>
+        <div v-if="expandedLigne === ligne.id" class="details stops-manager">
+          <div class="line-color-editor">
+            <label>Couleur actuelle</label>
+            <input :value="getLigneColorDraft(ligne)" type="color" @input="ligneColorDrafts[ligne.id] = ($event.target as HTMLInputElement).value" />
+            <button type="button" class="approve-btn small" @click="saveLigneColor(ligne)">Enregistrer couleur</button>
+          </div>
+
+          <h5>Arrêts actuels</h5>
+          <p v-if="!getSortedArrets(ligne).length" class="muted">Aucun arrêt pour cette ligne.</p>
+          <div v-for="arret in getSortedArrets(ligne)" :key="arret.id" class="stop-item">
+            <template v-if="editingInlineArret[ligne.id]?.id === arret.id">
+              <input v-model="editingInlineArret[ligne.id]!.name" type="text" placeholder="Nom" />
+              <input v-model="editingInlineArret[ligne.id]!.latitude" type="text" placeholder="Latitude" />
+              <input v-model="editingInlineArret[ligne.id]!.longitude" type="text" placeholder="Longitude" />
+              <button type="button" class="primary-btn small" @click="saveInlineArret(ligne.id)">Sauvegarder</button>
+              <button type="button" class="ghost-btn small" @click="cancelEditInlineArret(ligne.id)">Annuler</button>
+            </template>
+            <template v-else>
+              <span>{{ arret.order + 1 }}. {{ arret.name }} — ({{ arret.latitude }}, {{ arret.longitude }})</span>
+              <div class="row-actions">
+                <button type="button" class="primary-btn small" @click="startEditInlineArret(ligne.id, arret)">✏️</button>
+                <button type="button" class="danger-btn small" @click="deleteArret(arret.id)">x</button>
+              </div>
+            </template>
+          </div>
+
+          <form class="inline-form stop-create-form" @submit.prevent="addInlineArret(ligne.id)">
+            <input v-model="ensureNewArretForm(ligne.id).name" type="text" placeholder="Nom" required />
+            <input v-model="ensureNewArretForm(ligne.id).latitude" type="text" placeholder="Latitude" required />
+            <input v-model="ensureNewArretForm(ligne.id).longitude" type="text" placeholder="Longitude" required />
+            <button type="submit" class="approve-btn">Ajouter</button>
+          </form>
+        </div>
       </article>
     </div>
 
@@ -726,6 +899,84 @@ onMounted(async () => {
   width: 100%;
   margin: 0;
   padding-left: 1rem;
+}
+
+.ligne-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ligne-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.color-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid rgba(253, 249, 240, 0.15);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: rgba(253, 249, 240, 0.07);
+}
+
+.color-field input[type='color'] {
+  width: 44px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.stops-manager {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.line-color-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid rgba(253, 249, 240, 0.1);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.line-color-editor input[type='color'] {
+  width: 42px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.stop-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid rgba(253, 249, 240, 0.1);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.stop-item input {
+  background: rgba(253, 249, 240, 0.07);
+  border: 1px solid rgba(253, 249, 240, 0.15);
+  color: #fdf9f0;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.stop-create-form {
+  margin-top: 0.5rem;
 }
 
 .status-pill {

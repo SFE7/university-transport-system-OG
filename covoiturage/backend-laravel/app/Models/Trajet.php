@@ -18,6 +18,9 @@ class Trajet extends Model
         'arrival_point',
         'departure_time',
         'available_seats',
+        'car_category',
+        'car_model',
+        'car_photo_url',
         'status',
         'membre_id',
     ];

@@ -6,7 +6,9 @@ namespace App\Services;
 
 use App\Models\Membre;
 use App\Models\Trajet;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Storage;
 
 class TrajetService
 {
@@ -38,9 +40,18 @@ class TrajetService
         return Trajet::with(['conducteur', 'reservations'])->findOrFail($id);
     }
 
-    public function create(array $data, Membre $actor): Trajet
+    public function create(array $data, ?UploadedFile $carPhoto, Membre $actor): Trajet
     {
         abort_if($actor->role !== 'conducteur', 403);
+
+        if ($carPhoto) {
+            $storedPath = $carPhoto->store('car_photos', 'public');
+            $data['car_photo_url'] = Storage::url($storedPath);
+        }
+
+        $data['car_category'] = $data['car_category'] ?? null;
+        $data['car_model'] = $data['car_model'] ?? null;
+        $data['car_photo_url'] = $data['car_photo_url'] ?? null;
 
         $data['membre_id'] = $actor->id;
 

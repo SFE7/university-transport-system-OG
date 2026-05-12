@@ -22,33 +22,39 @@ const handleLogout = async () => {
 
 <template>
   <div class="app-shell">
-    <header class="topbar">
-      <RouterLink class="brand" to="/trajets">Covoiturage Universitaire</RouterLink>
-      <nav class="nav-links">
-        <template v-if="String(authStore.membre?.role) === 'admin'">
-          <RouterLink to="/admin?tab=lignes">Lignes</RouterLink>
-          <RouterLink to="/admin?tab=incidents">Incidents</RouterLink>
-          <RouterLink to="/admin?tab=chauffeurs">Chauffeurs</RouterLink>
-          <RouterLink to="/admin?tab=arrets">Arrets</RouterLink>
-          <RouterLink to="/admin?tab=horaires">Horaires</RouterLink>
-          <RouterLink to="/admin?tab=documents">Documents</RouterLink>
-          <RouterLink to="/admin?tab=signalements">Signalements</RouterLink>
-          <RouterLink to="/admin?tab=membres">Membres</RouterLink>
-          <RouterLink to="/admin?tab=statistiques">Statistiques</RouterLink>
-        </template>
-        <template v-else>
-          <RouterLink to="/trajets">Trajets</RouterLink>
-          <RouterLink v-if="authStore.isAuthenticated" to="/reservations">Reservations</RouterLink>
-          <RouterLink v-if="authStore.isAuthenticated" to="/history">Historique</RouterLink>
-          <RouterLink v-if="authStore.isAuthenticated" to="/notifications">Notifications</RouterLink>
-          <RouterLink v-if="authStore.isConducteur" to="/dashboard">Dashboard</RouterLink>
-          <RouterLink v-if="authStore.membre?.role === 'membre' || authStore.isConducteur" to="/chauffeur/bus/map">Carte bus</RouterLink>
-          <RouterLink v-if="authStore.membre?.role === 'membre' || authStore.isConducteur" to="/chauffeur/bus/schedules">Horaires</RouterLink>
-          <RouterLink v-if="authStore.membre?.role === 'chauffeur_bus'" to="/chauffeur/bus">Partager position</RouterLink>
-          <!-- Comparer feature removed -->
-        </template>
-      </nav>
-      <div class="auth-actions">
+    <div class="navbar-layout">
+      <RouterLink class="brand-fixed" to="/trajets">
+        <img src="/TrajetU.png" alt="TrajetU Logo" class="logo-img" />
+      </RouterLink>
+
+      <header class="topbar">
+        <nav class="nav-links">
+          <template v-if="String(authStore.membre?.role) === 'admin'">
+            <RouterLink to="/admin?tab=lignes">Lignes</RouterLink>
+            <RouterLink to="/admin?tab=incidents">Incidents</RouterLink>
+            <RouterLink to="/admin?tab=chauffeurs">Chauffeurs</RouterLink>
+            <RouterLink to="/admin?tab=arrets">Arrets</RouterLink>
+            <RouterLink to="/admin?tab=horaires">Horaires</RouterLink>
+            <RouterLink to="/admin?tab=documents">Documents</RouterLink>
+            <RouterLink to="/admin?tab=signalements">Signalements</RouterLink>
+            <RouterLink to="/admin?tab=membres">Membres</RouterLink>
+            <RouterLink to="/admin?tab=statistiques">Statistiques</RouterLink>
+          </template>
+          <template v-else>
+            <RouterLink to="/trajets">Trajets</RouterLink>
+            <RouterLink v-if="authStore.isAuthenticated" to="/reservations">Reservations</RouterLink>
+            <RouterLink v-if="authStore.isAuthenticated" to="/history">Historique</RouterLink>
+            <RouterLink v-if="authStore.isAuthenticated" to="/notifications">Notifications</RouterLink>
+            <RouterLink v-if="authStore.isConducteur" to="/dashboard">Dashboard</RouterLink>
+            <RouterLink v-if="authStore.membre?.role === 'membre' || authStore.isConducteur" to="/chauffeur/bus/map">Map</RouterLink>
+            <RouterLink v-if="authStore.membre?.role === 'membre' || authStore.isConducteur" to="/chauffeur/bus/schedules">Horaires</RouterLink>
+            <RouterLink v-if="authStore.membre?.role === 'chauffeur_bus'" to="/chauffeur/bus">Partager position</RouterLink>
+            <!-- Comparer feature removed -->
+          </template>
+        </nav>
+      </header>
+
+      <div class="auth-actions-fixed">
         <span class="welcome">Salut, {{ displayName }}</span>
         <RouterLink v-if="!authStore.isAuthenticated" class="btn ghost" to="/login">Login</RouterLink>
         <RouterLink v-if="!authStore.isAuthenticated" class="btn" to="/register">Register</RouterLink>
@@ -56,7 +62,7 @@ const handleLogout = async () => {
           Logout
         </button>
       </div>
-    </header>
+    </div>
     <main class="content">
       <div v-if="accessDeniedMessage" class="alert-banner">
         {{ accessDeniedMessage }}
@@ -107,7 +113,7 @@ body {
   background-image:
     radial-gradient(ellipse at 20% 50%, rgba(255, 225, 128, 0.08) 0%, transparent 60%),
     radial-gradient(ellipse at 80% 20%, rgba(159, 144, 101, 0.1) 0%, transparent 50%),
-    linear-gradient(135deg, #2d5a42 0%, #1b3d2f 40%, #3a6b4a 100%);
+    linear-gradient(135deg, #19b060 0%, #1b3d2f 40%, #229348 100%);
   min-height: 100vh;
   background-attachment: fixed;
   overflow-x: hidden;
@@ -137,9 +143,49 @@ a {
   flex-direction: column;
 }
 
+.navbar-layout {
+  position: relative;
+  height: 0;
+  z-index: 1000;
+}
+
+.brand-fixed {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  color: #ffe180;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  transition: color 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+}
+
+.logo-img {
+  height: 100px;
+  width: auto;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.brand-fixed:hover {
+  transform: scale(1.02);
+}
+
+.brand-fixed:hover .logo-img {
+  transform: scale(1.02);
+}
+
+.brand-fixed:active {
+  transform: scale(0.97);
+}
+
 .topbar {
   position: fixed;
-  top: 16px;
+  top: 24px;
   left: 50%;
   transform: translateX(-50%);
   width: auto;
@@ -153,23 +199,8 @@ a {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 10px 24px;
-  gap: 8px;
-}
-
-.brand {
-  color: #ffe180;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-right: 16px;
-  transition: color 0.2s ease, transform 0.2s ease;
-  white-space: nowrap;
-}
-
-.brand:active {
-  transform: scale(0.97);
 }
 
 .nav-links {
@@ -204,23 +235,28 @@ a {
   opacity: 1;
 }
 
-.auth-actions {
+.auth-actions-fixed {
+  position: fixed;
+  top: 24px;
+  right: 24px;
   display: flex;
   align-items: center;
   gap: 8px;
   white-space: nowrap;
+  z-index: 1001;
 }
 
 .welcome {
   color: #9f9065;
-  font-size: 13px;
+  font-size: 18px;
+  font-weight: 700;
   white-space: nowrap;
   margin-right: 8px;
 }
 
 .content {
   flex: 1;
-  padding: 120px 6vw 64px;
+  padding: 80px 6vw 64px;
 }
 
 .alert-banner {

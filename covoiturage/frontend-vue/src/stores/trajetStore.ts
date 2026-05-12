@@ -3,6 +3,17 @@ import { defineStore } from 'pinia'
 import trajetService from '@/services/trajetService'
 import type { Trajet } from '@/types'
 
+type CreateTrajetPayload = {
+  departure_point: string
+  arrival_point: string
+  departure_time: string
+  available_seats: number
+  car_category: string
+  car_model: string
+  car_photo_url?: string | null
+  carPhotoFile?: File | null
+}
+
 export const useTrajetStore = defineStore('trajets', () => {
   const trajets = ref<Trajet[]>([])
   const currentTrajet = ref<Trajet | null>(null)
@@ -11,6 +22,10 @@ export const useTrajetStore = defineStore('trajets', () => {
   const error = ref<string | null>(null)
   const currentPage = ref(1)
   const lastPage = ref(1)
+  const selectedCategory = ref('')
+  const selectedModel = ref('')
+  const carPhotoFile = ref<File | null>(null)
+  const carPhotoUrl = ref<string | null>(null)
 
   const fetchAll = async (filters?: {
     departure_point?: string
@@ -49,16 +64,21 @@ export const useTrajetStore = defineStore('trajets', () => {
     }
   }
 
-  const create = async (payload: {
-    departure_point: string
-    arrival_point: string
-    departure_time: string
-    available_seats: number
-  }) => {
+  const create = async (payload: CreateTrajetPayload) => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await trajetService.create(payload)
+      const requestPayload = {
+        ...payload,
+        car_category: payload.car_category || selectedCategory.value,
+        car_model: payload.car_model || selectedModel.value,
+        car_photo_url: payload.car_photo_url ?? carPhotoUrl.value,
+        carPhotoFile: payload.carPhotoFile ?? carPhotoFile.value,
+      }
+
+      console.log('[trajetStore.create] forwarding payload', requestPayload)
+
+      const response = await trajetService.create(requestPayload)
       trajets.value.unshift(response.data)
       return response
     } catch (err: any) {
@@ -112,6 +132,10 @@ export const useTrajetStore = defineStore('trajets', () => {
     error,
     currentPage,
     lastPage,
+    selectedCategory,
+    selectedModel,
+    carPhotoFile,
+    carPhotoUrl,
     fetchAll,
     fetchOne,
     create,

@@ -2,7 +2,9 @@ export interface LigneBus {
   id: number
   name: string
   description: string | null
+  color?: string | null
   is_active: boolean
+  next_departure?: string | null
   arrets?: ArretBus[]
   horaires?: HoraireBus[]
 }
