@@ -15,6 +15,12 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => Boolean(token.value))
   const isConducteur = computed(() => membre.value?.role === 'conducteur')
 
+  const role = computed(() => {
+    // support both returned ref shape and plain object (Pinia unwrapping differences)
+    const maybe = (membre as any)?.value ?? (membre as any)
+    return maybe?.role as ("membre" | "conducteur" | "chauffeur_bus" | "admin") | undefined
+  })
+
   const register = async (payload: {
     name: string
     email: string
@@ -169,5 +175,6 @@ export const useAuthStore = defineStore('auth', () => {
     initFromStorage,
     isAuthenticated,
     isConducteur,
+    role,
   }
 })

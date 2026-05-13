@@ -88,7 +88,7 @@ router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
   authStore.initFromStorage()
   const meta = to.meta as RouteMeta
-  const role = authStore.membre?.role as AppRole | undefined
+  const role = authStore.role as AppRole | undefined
 
   if (meta.requiresAuth && !authStore.isAuthenticated) {
     return next('/login')
