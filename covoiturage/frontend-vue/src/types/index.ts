@@ -29,6 +29,7 @@ export interface Reservation {
   membre_id: number
   trajet_id: number
   status: 'pending' | 'accepted' | 'refused' | 'cancelled'
+  membre?: Membre | null
   trajet: Trajet | null
   created_at: string
 }

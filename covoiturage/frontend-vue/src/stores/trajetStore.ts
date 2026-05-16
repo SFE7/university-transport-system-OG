@@ -16,6 +16,7 @@ type CreateTrajetPayload = {
 
 export const useTrajetStore = defineStore('trajets', () => {
   const trajets = ref<Trajet[]>([])
+  const myTrajets = ref<Trajet[]>([])
   const currentTrajet = ref<Trajet | null>(null)
   const history = ref<Trajet[]>([])
   const isLoading = ref(false)
@@ -124,8 +125,24 @@ export const useTrajetStore = defineStore('trajets', () => {
     }
   }
 
+  const fetchMy = async () => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const response = await trajetService.getMine()
+      myTrajets.value = response.data
+      return response
+    } catch (err: any) {
+      error.value = err?.response?.data?.message || 'Failed to load my trajets'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     trajets,
+    myTrajets,
     currentTrajet,
     history,
     isLoading,
@@ -141,5 +158,6 @@ export const useTrajetStore = defineStore('trajets', () => {
     create,
     cancel,
     fetchHistory,
+    fetchMy,
   }
 })

@@ -11,6 +11,7 @@ use App\Services\DocumentService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
@@ -41,5 +42,15 @@ class DocumentController extends Controller
         $doc = $this->service->reject($doc, $request->user(), (string) $request->reason);
 
         return $this->success(new DocumentSoumisResource($doc), 'Document rejeté');
+    }
+
+    public function preview(int $id)
+    {
+        $doc = DocumentSoumis::findOrFail($id);
+        $path = Storage::disk('public')->path($doc->file_path);
+
+        abort_unless(is_file($path), 404, 'Fichier introuvable');
+
+        return response()->file($path);
     }
 }

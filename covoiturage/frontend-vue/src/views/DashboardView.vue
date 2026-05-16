@@ -1,34 +1,21 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
+import { CAR_CATEGORIES } from '@/constants/carModels'
 import { useTrajetStore } from '@/stores/trajetStore'
 import { useReservationStore } from '@/stores/reservationStore'
-import { CAR_CATEGORIES } from '@/constants/carModels'
 
 const OTHER_CATEGORY_OPTION = 'Autre / Autre modèle'
 const OTHER_MODEL_OPTION = "Mon modèle n'est pas dans la liste"
 
-const authStore = useAuthStore()
 const trajetStore = useTrajetStore()
 const reservationStore = useReservationStore()
 
-onMounted(() => {
-  trajetStore.fetchHistory()
-  reservationStore.fetchMyReservations()
-})
-
-const myTrajets = computed(() => {
-  if (Array.isArray(trajetStore.history)) {
-    return trajetStore.history
-  }
-
-  const historyPayload = trajetStore.history as unknown as { data?: unknown }
-  return Array.isArray(historyPayload?.data) ? historyPayload.data : []
-})
-
+const selectedTrajetId = ref<number | null>(null)
+const actionError = ref('')
 const showForm = ref(false)
 const formError = ref('')
 const isSubmitting = ref(false)
+const staticPhotoFailed = ref(false)
 const uploadedPhotoPreview = ref<string | null>(null)
 const newTrajet = ref({
   departure_point: '',
@@ -37,6 +24,8 @@ const newTrajet = ref({
   available_seats: 1,
 })
 
+const mesTrajets = computed(() => trajetStore.myTrajets)
+const demandes = computed(() => reservationStore.pendingDemandes)
 const categoryOptions = computed(() => [...Object.keys(CAR_CATEGORIES), OTHER_CATEGORY_OPTION])
 
 const modelOptions = computed(() => {
@@ -65,6 +54,7 @@ const photoUrl = computed(() => {
 })
 
 const resetCarPhotoStep = () => {
+  staticPhotoFailed.value = false
   trajetStore.carPhotoFile = null
   trajetStore.carPhotoUrl = null
   uploadedPhotoPreview.value = null
@@ -117,6 +107,7 @@ const closeForm = () => {
 
 const submitTrajet = async () => {
   formError.value = ''
+
   if (
     !newTrajet.value.departure_point ||
     !newTrajet.value.arrival_point ||
@@ -136,11 +127,6 @@ const submitTrajet = async () => {
     return
   }
 
-  if (!isCustomModel.value && !photoUrl.value) {
-    formError.value = 'La photo existante est introuvable pour ce modele.'
-    return
-  }
-
   isSubmitting.value = true
   try {
     const payload = {
@@ -151,59 +137,67 @@ const submitTrajet = async () => {
       carPhotoFile: trajetStore.carPhotoFile,
     }
 
-    console.log('[ConducteurDashboardView] submitting trajet payload', payload)
-
     await trajetStore.create(payload)
     closeForm()
-    await trajetStore.fetchHistory()
-  } catch (e) {
+    await trajetStore.fetchMy()
+  } catch {
     formError.value = 'Erreur lors de la création du trajet.'
   } finally {
     isSubmitting.value = false
   }
 }
 
-const pendingReservations = computed(() =>
-  Array.isArray(reservationStore.reservations)
-    ? reservationStore.reservations.filter(
-        (reservation) =>
-          reservation.status === 'pending' && reservation.trajet?.status === 'active'
-      )
-    : []
-)
-
-const formatStatus = (s: unknown) => {
-  const key = String(s || '').toLowerCase()
-  const map: Record<string, string> = {
-    active: 'Actif',
-    full: 'Complet',
-    cancelled: 'Annulé',
-    pending: 'En attente',
+const filteredDemandes = computed(() => {
+  if (!selectedTrajetId.value) {
+    return demandes.value
   }
-  return map[key] || String(s || '')
+  return demandes.value.filter((reservation) => reservation.trajet_id === selectedTrajetId.value)
+})
+
+const formatDate = (value: unknown) => {
+  const date = new Date(String(value || ''))
+  if (isNaN(date.getTime())) {
+    return String(value || '')
+  }
+  return date.toLocaleString()
 }
 
-const formatDate = (v: unknown) => {
+const selectTrajet = (trajetId: number) => {
+  selectedTrajetId.value = selectedTrajetId.value === trajetId ? null : trajetId
+}
+
+const handleDecision = async (reservationId: number, action: 'accept' | 'refuse') => {
+  actionError.value = ''
   try {
-    const d = new Date(String(v || ''))
-    if (isNaN(d.getTime())) return String(v || '')
-    return d.toLocaleString()
-  } catch {
-    return String(v || '')
+    if (action === 'accept') {
+      await reservationStore.accept(reservationId)
+    } else {
+      await reservationStore.refuse(reservationId)
+    }
+  } catch (error: any) {
+    actionError.value = error?.response?.data?.message || 'Action impossible pour cette demande.'
   }
 }
+
+onMounted(async () => {
+  await Promise.all([
+    trajetStore.fetchMy(),
+    reservationStore.fetchMyDemandes(),
+  ])
+})
 </script>
 
 <template>
   <section class="page page-shell">
     <header class="page-header">
-      <h1 class="page-title">Espace conducteur</h1>
-      <p class="subtitle">Gérez vos trajets, réservations et demandes de passagers.</p>
+      <h1 class="page-title">Tableau conducteur</h1>
+      <p class="subtitle">Créez vos trajets et traitez les demandes de reservation.</p>
     </header>
 
     <div class="grid two">
       <section class="glass dashboard-card">
-        <h2 class="section-title">Mes trajets</h2>
+        <h2 class="section-title">Mes Trajets</h2>
+
         <div v-if="showForm" class="glass form-panel">
           <h3 class="subsection-title">Publier un trajet</h3>
           <div class="form-grid">
@@ -211,6 +205,7 @@ const formatDate = (v: unknown) => {
             <input v-model="newTrajet.arrival_point" class="field-input" placeholder="Point d'arrivée" />
             <input v-model="newTrajet.departure_time" class="field-input" type="datetime-local" />
             <input v-model.number="newTrajet.available_seats" class="field-input" type="number" min="1" placeholder="Places disponibles" />
+
             <label class="field-label" for="car-category">Catégorie du véhicule</label>
             <select id="car-category" v-model="trajetStore.selectedCategory" class="field-input">
               <option disabled value="">Sélectionner une catégorie</option>
@@ -230,8 +225,8 @@ const formatDate = (v: unknown) => {
             </template>
 
             <template v-if="trajetStore.selectedModel">
-              <div v-if="!isCustomModel && photoUrl" class="photo-step">
-                <img :src="photoUrl" alt="Photo du véhicule" class="photo-thumb" />
+              <div v-if="!isCustomModel && photoUrl && !staticPhotoFailed" class="photo-step">
+                <img :src="photoUrl" alt="Photo du véhicule" class="photo-thumb" @error="staticPhotoFailed = true" />
                 <p class="muted">Photo existante utilisée</p>
               </div>
 
@@ -269,107 +264,86 @@ const formatDate = (v: unknown) => {
         <button v-else class="primary-btn new-trajet-btn" type="button" @click="showForm = true">
           + Publier un trajet
         </button>
-        <div v-if="trajetStore.isLoading" class="status">Chargement...</div>
-        <div v-if="myTrajets.length" class="items-list">
-          <article v-for="trajet in myTrajets" :key="trajet.id" class="glass item-card">
-          <div class="tag-list">
-            <span
-              class="status-pill"
-              :class="{
-                active: String(trajet.status) === 'active',
-                pending: String(trajet.status) === 'full',
-                cancelled: String(trajet.status) === 'cancelled',
-              }"
-            >
-              {{ formatStatus(trajet.status) }}
-            </span>
-            <span class="status-pill pending">{{ formatDate(trajet.departure_time) }}</span>
-          </div>
-          <p class="route-text">{{ trajet.departure_point }} -> {{ trajet.arrival_point }}</p>
-          <div class="button-row">
-            <button
-              v-if="String(trajet.status) === 'active'"
-              class="danger-btn"
-              type="button"
-              @click="trajetStore.cancel(trajet.id)"
-            >
-              Annuler
+
+        <div v-if="trajetStore.isLoading" class="status">Chargement des trajets...</div>
+        <p v-else-if="!mesTrajets.length" class="empty-state">Vous n'avez pas encore de trajets.</p>
+
+        <div v-else class="items-list">
+          <article v-for="trajet in mesTrajets" :key="trajet.id" class="glass item-card">
+            <p class="route-text">{{ trajet.departure_point }} -> {{ trajet.arrival_point }}</p>
+            <p class="muted">Depart: {{ formatDate(trajet.departure_time) }}</p>
+            <p class="muted">Places: {{ trajet.available_seats }}</p>
+            <p class="muted">Statut: {{ trajet.status }}</p>
+            <button class="primary-btn" type="button" @click="selectTrajet(trajet.id)">
+              {{ selectedTrajetId === trajet.id ? 'Masquer demandes' : 'Voir demandes' }}
             </button>
-          </div>
           </article>
         </div>
-        <p v-if="!myTrajets.length" class="empty-state">Vous n'avez pas encore publié de trajet.</p>
       </section>
 
       <section class="glass dashboard-card">
-        <h2 class="section-title">Reservations en attente</h2>
-        <div v-if="reservationStore.isLoading" class="status">Chargement...</div>
-        <div v-if="pendingReservations.length" class="items-list">
-          <article v-for="reservation in pendingReservations" :key="reservation.id" class="glass item-card">
-            <p class="muted">Passager: {{ reservation.membre_id }}</p>
-            <p class="muted">Demande: {{ formatDate(reservation.created_at) }}</p>
+        <h2 class="section-title">Demandes de reservation</h2>
+        <p v-if="selectedTrajetId" class="muted">Filtre actif: trajet #{{ selectedTrajetId }}</p>
+
+        <div v-if="reservationStore.isLoading" class="status">Chargement des demandes...</div>
+        <p v-else-if="!filteredDemandes.length" class="empty-state">Aucune demande en attente.</p>
+
+        <div v-else class="items-list">
+          <article v-for="reservation in filteredDemandes" :key="reservation.id" class="glass item-card">
+            <p class="muted">Membre: {{ reservation.membre?.name || `#${reservation.membre_id}` }}</p>
+            <p class="muted">
+              Trajet: {{ reservation.trajet?.departure_point || '-' }} -> {{ reservation.trajet?.arrival_point || '-' }}
+            </p>
+            <p class="muted">Demandee le: {{ formatDate(reservation.created_at) }}</p>
+
             <div class="button-row">
-              <button class="accept-btn" type="button" @click="reservationStore.accept(reservation.id)">
-              Accepter
+              <button class="accept-btn" type="button" @click="handleDecision(reservation.id, 'accept')">
+                Accepter
               </button>
-              <button class="danger-btn" type="button" @click="reservationStore.refuse(reservation.id)">
-              Refuser
+              <button class="danger-btn" type="button" @click="handleDecision(reservation.id, 'refuse')">
+                Refuser
               </button>
             </div>
           </article>
         </div>
-        <p v-if="!pendingReservations.length" class="empty-state">Aucune demande en attente pour le moment.</p>
+
+        <p v-if="actionError" class="error-message">{{ actionError }}</p>
       </section>
     </div>
-
-    <hr class="divider" />
-
-    <p v-if="!authStore.isConducteur" class="status">Accès réservé aux conducteurs.</p>
   </section>
 </template>
 
 <style scoped>
 .page-shell {
   padding: 40px 24px;
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
 .page-header {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .page-title {
-  font-size: 28px;
-  margin: 0 0 6px;
+  font-size: 30px;
+  margin: 0 0 8px;
   color: #fdf9f0;
 }
 
 .subtitle {
   margin: 0;
   color: rgba(253, 249, 240, 0.72);
-  font-size: 14px;
 }
 
 .dashboard-card {
   padding: 24px;
   border-radius: 16px;
-  margin-bottom: 16px;
 }
 
-.dashboard-card:hover,
-.item-card:hover,
-.form-panel:hover {
-  border-color: rgba(255, 225, 128, 0.5);
-}
-
-.section-title {
-  color: #6c757d;
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin: 0 0 16px;
+.form-panel {
+  padding: 24px;
+  border-radius: 16px;
+  margin-bottom: 20px;
 }
 
 .subsection-title {
@@ -377,12 +351,6 @@ const formatDate = (v: unknown) => {
   font-size: 16px;
   font-weight: 600;
   color: #fdf9f0;
-}
-
-.form-panel {
-  padding: 24px;
-  border-radius: 16px;
-  margin-bottom: 20px;
 }
 
 .form-grid {
@@ -422,158 +390,115 @@ const formatDate = (v: unknown) => {
 }
 
 .photo-thumb {
-  max-height: 150px;
-  width: auto;
+  width: 100%;
+  max-width: 260px;
   border-radius: 12px;
-  border: 1px solid rgba(253, 249, 240, 0.2);
-  background: rgba(253, 249, 240, 0.04);
+  border: 1px solid rgba(253, 249, 240, 0.15);
 }
 
-.error-message {
-  background-color: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.5);
-  color: #fca5a5;
-  padding: 12px;
-  border-radius: 8px;
-  margin-top: 16px;
-  font-size: 14px;
-}
-
-.button-row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.primary-btn,
-.accept-btn,
-.danger-btn,
-.ghost-btn {
-  border-radius: 999px;
-  font-weight: 700;
-  padding: 10px 24px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.primary-btn,
 .new-trajet-btn {
-  background: #ffe180;
+  margin: 12px 0 18px 0;
+  display: inline-block;
+}
+
+select.field-input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background: rgba(253, 249, 240, 0.07);
+  color: #fdf9f0;
+  border: 1px solid rgba(253, 249, 240, 0.15);
+  padding: 10px 14px;
+  border-radius: 12px;
+}
+
+select.field-input option {
   color: #1b3d2f;
-  border: none;
-}
-
-.primary-btn:hover,
-.new-trajet-btn:hover {
-  background: #e6b800;
-  color: #0f2a1f;
-}
-
-.primary-btn:disabled,
-.ghost-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.accept-btn {
-  background: rgba(100, 200, 120, 0.15);
-  border: 1px solid rgba(100, 200, 120, 0.3);
-  color: #6ec47a;
-  padding: 8px 20px;
-}
-
-.accept-btn:hover {
-  background: rgba(100, 200, 120, 0.3);
-}
-
-.danger-btn {
-  background: rgba(255, 107, 107, 0.15);
-  border: 1px solid rgba(255, 107, 107, 0.4);
-  color: #ff6b6b;
-  padding: 8px 20px;
-}
-
-.danger-btn:hover {
-  background: rgba(255, 107, 107, 0.3);
 }
 
 .ghost-btn {
   background: transparent;
-  border: 1px solid rgba(253, 249, 240, 0.15);
   color: #fdf9f0;
-  padding: 10px 24px;
+  border: 1px solid rgba(253, 249, 240, 0.12);
+  padding: 9px 16px;
+  border-radius: 999px;
+  cursor: pointer;
 }
 
-.ghost-btn:hover {
-  border-color: rgba(255, 225, 128, 0.35);
+.section-title {
+  color: #ffe180;
+  font-size: 14px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin: 0 0 16px;
 }
 
 .items-list {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .item-card {
-  padding: 20px 24px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.02);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  padding: 18px;
+  border-radius: 14px;
 }
 
 .route-text {
-  margin: 12px 0 0;
-  font-weight: 600;
+  margin: 0 0 8px;
+  font-weight: 700;
   color: #fdf9f0;
 }
 
-.empty-state {
-  color: rgba(253, 249, 240, 0.5);
-  text-align: center;
-  padding: 40px 0;
-  font-size: 15px;
-}
-
 .muted {
-  color: rgba(253,249,240,0.6);
+  margin: 4px 0;
+  color: rgba(253, 249, 240, 0.7);
   font-size: 13px;
 }
 
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid transparent;
+.button-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
 }
 
-.status-pill.active {
-  background: rgba(100, 200, 120, 0.15);
-  color: #6ec47a;
-  border-color: rgba(100, 200, 120, 0.3);
-}
-
-.status-pill.pending {
-  background: rgba(255, 225, 128, 0.15);
-  color: #ffe180;
-  border-color: rgba(255, 225, 128, 0.3);
-}
-
-.status-pill.cancelled {
-  background: rgba(255, 107, 107, 0.15);
-  color: #ff6b6b;
-  border-color: rgba(255, 107, 107, 0.3);
-}
-
-.divider {
+.primary-btn,
+.accept-btn,
+.danger-btn {
   border: none;
-  border-top: 1px solid rgba(253, 249, 240, 0.08);
-  margin: 24px 0;
+  border-radius: 999px;
+  font-weight: 700;
+  padding: 9px 16px;
+  cursor: pointer;
 }
 
-@media (max-width: 860px) {
+.primary-btn {
+  background: #ffe180;
+  color: #1b3d2f;
+}
+
+.accept-btn {
+  background: rgba(110, 196, 122, 0.2);
+  color: #6ec47a;
+  border: 1px solid rgba(110, 196, 122, 0.4);
+}
+
+.danger-btn {
+  background: rgba(255, 107, 107, 0.18);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 107, 107, 0.45);
+}
+
+.error-message {
+  margin-top: 12px;
+  color: #ff6b6b;
+}
+
+.empty-state,
+.status {
+  color: rgba(253, 249, 240, 0.6);
+}
+
+@media (max-width: 900px) {
   .grid.two {
     grid-template-columns: 1fr;
   }

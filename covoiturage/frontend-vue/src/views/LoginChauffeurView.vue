@@ -26,13 +26,19 @@ import { useAuthStore } from '@/stores/authStore'
 const auth = useAuthStore()
 const router = useRouter()
 
+const roleLandingPage: Record<string, string> = {
+  membre: '/trajets',
+  conducteur: '/dashboard',
+  chauffeur_bus: '/chauffeur/bus',
+  admin: '/admin',
+}
+
 const email = ref('')
 const password = ref('')
 
 const submit = async () => {
   await auth.login({ email: email.value, password: password.value })
-  if (auth.isConducteur) router.push('/dashboard')
-  else router.push('/trajets')
+  router.push(roleLandingPage[auth.role || 'membre'] || '/trajets')
 }
 </script>
 

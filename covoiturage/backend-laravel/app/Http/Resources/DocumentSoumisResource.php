@@ -6,7 +6,6 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 class DocumentSoumisResource extends JsonResource
 {
@@ -17,7 +16,7 @@ class DocumentSoumisResource extends JsonResource
             'membre' => new MembreResource($this->whenLoaded('membre')),
             'type' => $this->type,
             'file_path' => $this->file_path,
-            'url' => $this->file_path ? Storage::url($this->file_path) : null,
+            'url' => $this->file_path ? $request->getSchemeAndHttpHost() . '/storage/' . ltrim($this->file_path, '/') : null,
             'status' => $this->status,
             'rejection_reason' => $this->rejection_reason,
             'reviewed_by' => $this->reviewed_by,

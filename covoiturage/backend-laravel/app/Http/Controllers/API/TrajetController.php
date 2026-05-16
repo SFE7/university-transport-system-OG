@@ -64,4 +64,11 @@ class TrajetController extends Controller
 
         return $this->success(TrajetResource::collection($trajets)->response()->getData(true));
     }
+
+    public function mesTrajets(Request $request): JsonResponse
+    {
+        $trajets = $this->service->getMyTrajets($request->user());
+
+        return $this->success(TrajetResource::collection($trajets)->response()->getData(true));
+    }
 }

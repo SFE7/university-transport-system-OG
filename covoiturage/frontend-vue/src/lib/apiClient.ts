@@ -1,4 +1,5 @@
 import axios from 'axios'
+import router from '@/router'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL + '/api/v1',
@@ -22,8 +23,12 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.clear()
-      window.location.href = '/login'
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_membre')
+      router.replace({
+        name: 'login',
+        query: { redirect: router.currentRoute.value.fullPath },
+      })
     }
     return Promise.reject(error)
   }

@@ -3,31 +3,37 @@
     <div class="glass-card">
       <h1 class="auth-title">Inscription Étudiant</h1>
       <p class="auth-subtitle">Complétez votre profil étudiant pour accéder à la plateforme.</p>
-      <div v-if="error" class="error-message">{{ error }}</div>
+      <div v-if="auth.error" class="error-message">{{ auth.error }}</div>
       <form @submit.prevent="submit">
         <div class="form-group">
           <label class="form-label">Nom complet</label>
           <input v-model="name" type="text" class="form-input" required />
+          <span v-if="auth.validationErrors?.name?.[0]" class="field-error">{{ auth.validationErrors.name[0] }}</span>
         </div>
         <div class="form-group">
           <label class="form-label">Email</label>
           <input v-model="email" type="email" class="form-input" required />
+          <span v-if="auth.validationErrors?.email?.[0]" class="field-error">{{ auth.validationErrors.email[0] }}</span>
         </div>
         <div class="form-group">
           <label class="form-label">Mot de passe</label>
           <input v-model="password" type="password" class="form-input" required />
+          <span v-if="auth.validationErrors?.password?.[0]" class="field-error">{{ auth.validationErrors.password[0] }}</span>
         </div>
         <div class="form-group">
           <label class="form-label">Confirmer le mot de passe</label>
           <input v-model="password_confirmation" type="password" class="form-input" required />
+          <span v-if="auth.validationErrors?.password_confirmation?.[0]" class="field-error">{{ auth.validationErrors.password_confirmation[0] }}</span>
         </div>
         <div class="form-group">
           <label class="form-label">Téléphone</label>
           <input v-model="phone" type="tel" class="form-input" />
+          <span v-if="auth.validationErrors?.phone?.[0]" class="field-error">{{ auth.validationErrors.phone[0] }}</span>
         </div>
         <div class="form-group">
           <label class="form-label">Carte étudiante (jpg, png, pdf)</label>
           <input ref="file" type="file" class="file-input" accept="image/*,.pdf" required />
+          <span v-if="auth.validationErrors?.carte_etudiante?.[0]" class="field-error">{{ auth.validationErrors.carte_etudiante[0] }}</span>
           <span v-if="file?.files?.[0]" class="file-name">{{ file.files[0].name }}</span>
         </div>
         <button class="primary-btn" type="submit" :disabled="isLoading">
@@ -56,10 +62,9 @@ const password_confirmation = ref('')
 const phone = ref('')
 const file = ref<HTMLInputElement | null>(null)
 const isLoading = ref(false)
-const error = ref<string | null>(null)
+// Local view-level error banner is driven by the store's `auth.error`.
 
 const submit = async () => {
-  error.value = null
   isLoading.value = true
 
   try {
@@ -74,7 +79,7 @@ const submit = async () => {
     await auth.registerEtudiant(fd)
     router.push('/trajets')
   } catch (err: any) {
-    error.value = err?.response?.data?.message || err?.message || 'Erreur lors de l\'inscription. Veuillez réessayer.'
+    // store now populates `auth.validationErrors` and `auth.error`; no duplicate extraction here
   } finally {
     isLoading.value = false
   }
@@ -235,6 +240,8 @@ form {
 .secondary-link a:hover {
   color: #ffe180;
 }
+
+.field-error { color: #fca5a5; font-size: 12px; margin-top: 2px; }
 
 @media (max-width: 480px) {
   .glass-card {

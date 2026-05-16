@@ -14,6 +14,7 @@ export const useDocumentStore = defineStore('document', () => {
     try {
       const res = await documentService.fetchPending()
       pending.value = res.data
+      console.log('documents[0]:', pending.value[0])
       return res
     } catch (err: any) {
       error.value = err?.response?.data?.message || 'Failed to fetch documents'

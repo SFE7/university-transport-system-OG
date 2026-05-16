@@ -16,6 +16,7 @@ class ReservationResource extends JsonResource
             'membre_id' => $this->membre_id,
             'trajet_id' => $this->trajet_id,
             'status' => $this->status,
+            'membre' => new MembreResource($this->whenLoaded('passager')),
             'trajet' => new TrajetResource($this->whenLoaded('trajet')),
             'created_at' => $this->created_at,
         ];

@@ -5,6 +5,7 @@ import type { Reservation } from '@/types'
 
 export const useReservationStore = defineStore('reservations', () => {
   const reservations = ref<Reservation[]>([])
+  const pendingDemandes = ref<Reservation[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -13,7 +14,14 @@ export const useReservationStore = defineStore('reservations', () => {
     error.value = null
     try {
       const response = await reservationService.getMyReservations()
-      reservations.value = response.data
+      const payload = response.data as unknown
+      const normalized = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as { data?: unknown })?.data)
+          ? (payload as { data: Reservation[] }).data
+          : []
+
+      reservations.value = normalized as Reservation[]
       return response
     } catch (err: any) {
       error.value = err?.response?.data?.message || 'Failed to load reservations'
@@ -28,10 +36,35 @@ export const useReservationStore = defineStore('reservations', () => {
     error.value = null
     try {
       const response = await reservationService.create(payload)
+      if (!Array.isArray(reservations.value)) {
+        reservations.value = []
+      }
       reservations.value.unshift(response.data)
       return response
     } catch (err: any) {
       error.value = err?.response?.data?.message || 'Failed to create reservation'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const fetchMyDemandes = async () => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const response = await reservationService.getMyDemandes()
+      const payload = response.data as unknown
+      const normalized = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as { data?: unknown })?.data)
+          ? (payload as { data: Reservation[] }).data
+          : []
+
+      pendingDemandes.value = normalized as Reservation[]
+      return response
+    } catch (err: any) {
+      error.value = err?.response?.data?.message || 'Failed to load demandes'
       throw err
     } finally {
       isLoading.value = false
@@ -63,6 +96,7 @@ export const useReservationStore = defineStore('reservations', () => {
       reservations.value = reservations.value.map((reservation) =>
         reservation.id === id ? response.data : reservation
       )
+      pendingDemandes.value = pendingDemandes.value.filter((reservation) => reservation.id !== id)
       return response
     } catch (err: any) {
       error.value = err?.response?.data?.message || 'Failed to accept reservation'
@@ -80,6 +114,7 @@ export const useReservationStore = defineStore('reservations', () => {
       reservations.value = reservations.value.map((reservation) =>
         reservation.id === id ? response.data : reservation
       )
+      pendingDemandes.value = pendingDemandes.value.filter((reservation) => reservation.id !== id)
       return response
     } catch (err: any) {
       error.value = err?.response?.data?.message || 'Failed to refuse reservation'
@@ -91,9 +126,11 @@ export const useReservationStore = defineStore('reservations', () => {
 
   return {
     reservations,
+    pendingDemandes,
     isLoading,
     error,
     fetchMyReservations,
+    fetchMyDemandes,
     create,
     cancel,
     accept,

@@ -14,9 +14,20 @@ class HoraireController extends Controller
 {
     use ApiResponseTrait;
 
+    public function index(): JsonResponse
+    {
+        $horaires = HoraireBus::query()
+            ->with(['chauffeur:id,name', 'ligne:id,name'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        return $this->success($horaires);
+    }
+
     public function store(StoreHoraireBusRequest $request): JsonResponse
     {
-        $horaire = HoraireBus::create($request->validated());
+        $horaire = HoraireBus::create($request->validated())
+            ->load(['chauffeur:id,name', 'ligne:id,name']);
 
         return $this->success($horaire, 'Horaire cree', 201);
     }
@@ -25,6 +36,7 @@ class HoraireController extends Controller
     {
         $horaire = HoraireBus::findOrFail($id);
         $horaire->update($request->validated());
+        $horaire->load(['chauffeur:id,name', 'ligne:id,name']);
 
         return $this->success($horaire, 'Horaire mis a jour');
     }

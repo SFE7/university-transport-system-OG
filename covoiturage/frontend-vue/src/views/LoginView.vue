@@ -6,6 +6,13 @@ import { useAuthStore } from '@/stores/authStore'
 const authStore = useAuthStore()
 const router = useRouter()
 
+const roleLandingPage: Record<string, string> = {
+  membre: '/trajets',
+  conducteur: '/dashboard',
+  chauffeur_bus: '/chauffeur/bus',
+  admin: '/admin',
+}
+
 const form = ref({
   email: '',
   password: '',
@@ -17,7 +24,7 @@ const handleSubmit = async () => {
   errorMessage.value = ''
   try {
     await authStore.login(form.value)
-    router.push('/trajets')
+    router.push(roleLandingPage[authStore.role || 'membre'] || '/trajets')
   } catch {
     errorMessage.value = authStore.error || 'Login failed'
   }

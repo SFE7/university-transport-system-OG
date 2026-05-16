@@ -3,36 +3,43 @@
     <div class="glass-card">
       <h1 class="auth-title">Inscription Conducteur</h1>
       <p class="auth-subtitle">Complétez votre profil conducteur pour accéder à la plateforme.</p>
-      <div v-if="error" class="error-message">{{ error }}</div>
+      <div v-if="auth.error" class="error-message">{{ auth.error }}</div>
       <form @submit.prevent="submit">
         <div class="form-group">
           <label class="form-label">Nom complet</label>
           <input v-model="name" type="text" class="form-input" required />
+          <span v-if="auth.validationErrors?.name?.[0]" class="field-error">{{ auth.validationErrors.name[0] }}</span>
         </div>
         <div class="form-group">
           <label class="form-label">Email</label>
           <input v-model="email" type="email" class="form-input" required />
+          <span v-if="auth.validationErrors?.email?.[0]" class="field-error">{{ auth.validationErrors.email[0] }}</span>
         </div>
         <div class="form-group">
           <label class="form-label">Mot de passe</label>
           <input v-model="password" type="password" class="form-input" required />
+          <span v-if="auth.validationErrors?.password?.[0]" class="field-error">{{ auth.validationErrors.password[0] }}</span>
         </div>
         <div class="form-group">
           <label class="form-label">Confirmer le mot de passe</label>
           <input v-model="password_confirmation" type="password" class="form-input" required />
+          <span v-if="auth.validationErrors?.password_confirmation?.[0]" class="field-error">{{ auth.validationErrors.password_confirmation[0] }}</span>
         </div>
         <div class="form-group">
           <label class="form-label">Téléphone</label>
           <input v-model="phone" type="tel" class="form-input" />
+          <span v-if="auth.validationErrors?.phone?.[0]" class="field-error">{{ auth.validationErrors.phone[0] }}</span>
         </div>
         <div class="form-group">
           <label class="form-label">Permis de conduire (jpg, png, pdf)</label>
           <input ref="file1" type="file" class="file-input" accept="image/*,.pdf" required />
+          <span v-if="auth.validationErrors?.permis_conduire?.[0]" class="field-error">{{ auth.validationErrors.permis_conduire[0] }}</span>
           <span v-if="file1?.files?.[0]" class="file-name">{{ file1.files[0].name }}</span>
         </div>
         <div class="form-group">
           <label class="form-label">Carte grise (jpg, png, pdf)</label>
           <input ref="file2" type="file" class="file-input" accept="image/*,.pdf" required />
+          <span v-if="auth.validationErrors?.carte_grise?.[0]" class="field-error">{{ auth.validationErrors.carte_grise[0] }}</span>
           <span v-if="file2?.files?.[0]" class="file-name">{{ file2.files[0].name }}</span>
         </div>
         <button class="primary-btn" type="submit" :disabled="isLoading">
@@ -62,10 +69,8 @@ const phone = ref('')
 const file1 = ref<HTMLInputElement | null>(null)
 const file2 = ref<HTMLInputElement | null>(null)
 const isLoading = ref(false)
-const error = ref<string | null>(null)
 
 const submit = async () => {
-  error.value = null
   isLoading.value = true
 
   try {
@@ -81,7 +86,7 @@ const submit = async () => {
     await auth.registerConducteur(fd)
     router.push('/trajets')
   } catch (err: any) {
-    error.value = err?.response?.data?.message || err?.message || 'Erreur lors de l\'inscription. Veuillez réessayer.'
+    // auth store now populates `auth.validationErrors` and `auth.error`
   } finally {
     isLoading.value = false
   }
@@ -242,6 +247,8 @@ form {
 .secondary-link a:hover {
   color: #ffe180;
 }
+
+.field-error { color: #fca5a5; font-size: 12px; margin-top: 2px; }
 
 @media (max-width: 480px) {
   .glass-card {

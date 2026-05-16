@@ -17,4 +17,12 @@ const reject = async (id: number, reason: string): Promise<ApiResponse<DocumentS
   return res.data
 }
 
-export default { fetchPending, approve, reject }
+const fetchPreviewBlob = async (id: number): Promise<Blob> => {
+  const res = await apiClient.get(`/documents/${id}/preview`, {
+    responseType: 'blob',
+  })
+
+  return res.data
+}
+
+export default { fetchPending, approve, reject, fetchPreviewBlob }

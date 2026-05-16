@@ -12,6 +12,7 @@ use App\Http\Controllers\API\BusPositionController;
 use App\Http\Controllers\API\LigneBusController;
 use App\Http\Controllers\API\IncidentBusController;
 use App\Http\Controllers\API\AdminMembreController;
+use App\Http\Controllers\API\ChauffeurController;
 use App\Http\Controllers\API\SignalementController;
 use App\Http\Controllers\API\StatistiquesController;
 
@@ -30,8 +31,9 @@ Route::prefix('v1')->group(function () {
 
     // Protected routes
     Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
-        Route::patch('/auth/password', [AuthController::class, 'changePassword'])->middleware('role:membre,conducteur,chauffeur_bus');
+        Route::patch('/auth/password', [AuthController::class, 'changePassword'])->middleware('role:membre,conducteur,chauffeur_bus,admin');
         Route::put('/membres/profil', [ProfilController::class, 'update']);
         Route::put('/conducteurs/vehicule', [ProfilController::class, 'updateVehicule'])->middleware('role:conducteur');
 
@@ -40,6 +42,7 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::post('/trajets',            [TrajetController::class, 'store'])->middleware('role:conducteur');
+        Route::get('/trajets/mes-trajets', [TrajetController::class, 'mesTrajets'])->middleware('role:conducteur');
         Route::get('/trajets/history',     [TrajetController::class, 'history'])->middleware('role:membre,conducteur');
         Route::put('/trajets/{id}',        [TrajetController::class, 'update'])->whereNumber('id');
         Route::delete('/trajets/{id}',     [TrajetController::class, 'destroy'])->whereNumber('id');
@@ -47,8 +50,11 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/reservations',                  [ReservationController::class, 'index']);
         Route::post('/reservations',                 [ReservationController::class, 'store'])->middleware('role:membre');
+        Route::get('/reservations/mes-demandes',     [ReservationController::class, 'mesDemandes'])->middleware('role:conducteur');
         Route::get('/reservations/{id}',             [ReservationController::class, 'show'])->whereNumber('id');
         Route::delete('/reservations/{id}',          [ReservationController::class, 'destroy'])->whereNumber('id')->middleware('role:membre,conducteur');
+        Route::put('/reservations/{id}/accept',      [ReservationController::class, 'accept'])->whereNumber('id')->middleware('role:conducteur');
+        Route::put('/reservations/{id}/refuse',      [ReservationController::class, 'refuse'])->whereNumber('id')->middleware('role:conducteur');
         Route::patch('/reservations/{id}/accept',    [ReservationController::class, 'accept'])->whereNumber('id')->middleware('role:conducteur');
         Route::patch('/reservations/{id}/refuse',    [ReservationController::class, 'refuse'])->whereNumber('id')->middleware('role:conducteur');
 
@@ -85,6 +91,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/admin/signalements',                   [SignalementController::class, 'index']);
             Route::patch('/admin/signalements/{id}/statut',     [SignalementController::class, 'updateStatus'])->whereNumber('id');
             Route::delete('/admin/signalements/{id}',           [SignalementController::class, 'destroy'])->whereNumber('id');
+            Route::get('/documents/{id}/preview',               [\App\Http\Controllers\API\DocumentController::class, 'preview'])->whereNumber('id');
+            Route::get('/chauffeurs',                    [ChauffeurController::class, 'index']);
+            Route::post('/chauffeurs',                   [ChauffeurController::class, 'store']);
+            Route::delete('/chauffeurs/{id}',            [ChauffeurController::class, 'destroy'])->whereNumber('id');
             Route::get('/documents', [DocumentController::class, 'index']);
             Route::patch('/documents/{id}/approve', [DocumentController::class, 'approve'])->whereNumber('id');
             Route::patch('/documents/{id}/reject', [DocumentController::class, 'reject'])->whereNumber('id');
@@ -97,6 +107,7 @@ Route::prefix('v1')->group(function () {
             Route::put('/arrets/{id}',                   [\App\Http\Controllers\API\ArretBusController::class, 'update'])->whereNumber('id');
             Route::delete('/arrets/{id}',                [\App\Http\Controllers\API\ArretBusController::class, 'destroy'])->whereNumber('id');
             // Horaires
+            Route::get('/horaires',                      [\App\Http\Controllers\API\HoraireController::class, 'index']);
             Route::post('/horaires',                     [\App\Http\Controllers\API\HoraireController::class, 'store']);
             Route::put('/horaires/{id}',                 [\App\Http\Controllers\API\HoraireController::class, 'update'])->whereNumber('id');
             Route::delete('/horaires/{id}',              [\App\Http\Controllers\API\HoraireController::class, 'destroy'])->whereNumber('id');

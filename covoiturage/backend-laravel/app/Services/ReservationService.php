@@ -23,7 +23,7 @@ class ReservationService
     {
         $trajet = Trajet::findOrFail($data['trajet_id']);
 
-        abort_if($trajet->available_seats < 1, 422);
+        abort_if($trajet->available_seats < 1, 422, 'Aucune place disponible pour ce trajet.');
 
         $reservation = Reservation::create([
             'membre_id' => $actor->id,
@@ -40,6 +40,17 @@ class ReservationService
         ]);
 
         return $reservation;
+    }
+
+    public function getPendingDemandesForConducteur(Membre $actor): LengthAwarePaginator
+    {
+        abort_if($actor->role !== 'conducteur', 403);
+
+        return Reservation::where('status', 'pending')
+            ->whereHas('trajet', fn ($query) => $query->where('membre_id', $actor->id))
+            ->with(['trajet.conducteur', 'passager'])
+            ->orderByDesc('created_at')
+            ->paginate(15);
     }
 
     public function accept(Reservation $reservation, Membre $actor): Reservation

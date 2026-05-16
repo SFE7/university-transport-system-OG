@@ -5,6 +5,7 @@ export interface DocumentSoumis {
   membre_id: number
   type: 'carte_etudiante' | 'carte_identite' | 'permis_conduire' | 'carte_grise'
   file_path: string
+  url: string | null
   status: 'en_attente' | 'approuve' | 'rejete'
   rejection_reason: string | null
   reviewed_at: string | null

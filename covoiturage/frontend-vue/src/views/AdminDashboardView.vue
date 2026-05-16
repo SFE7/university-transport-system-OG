@@ -8,9 +8,16 @@ import { useSignalementStore } from '@/stores/signalementStore'
 import { useStatistiquesStore } from '@/stores/statistiquesStore'
 import adminService from '@/services/adminService'
 import arretService from '@/services/arretService'
-import horaireService from '@/services/horaireService'
 import apiClient from '@/lib/apiClient'
 import type { Membre } from '@/types'
+import type { HoraireBus } from '@/types/bus'
+
+type AdminHoraire = HoraireBus & {
+  ligne?: {
+    id: number
+    name: string
+  } | null
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -28,11 +35,17 @@ const incidentForm = reactive({ ligne_bus_id: 0, type: 'other', description: '' 
 const arretForm = reactive({ name: '', latitude: '', longitude: '', order: 0, ligne_bus_id: 0 })
 const editingArretId = ref<number | null>(null)
 
-const horaireForm = reactive({ ligne_bus_id: 0, chauffeur_id: 0, departure_time: '', days: [] as string[] })
+const horaireForm = reactive({ ligne_bus_id: 0, chauffeur_id: 0, departure_time: '' })
+const horaireDaysInput = ref('')
+const horaires = ref<AdminHoraire[]>([])
+const horaireError = ref<string | null>(null)
 const editingHoraireId = ref<number | null>(null)
 
 const membres = ref<Membre[]>([])
+const chauffeurs = ref<Membre[]>([])
 const membreError = ref<string | null>(null)
+const chauffeurError = ref<string | null>(null)
+const chauffeurForm = reactive({ name: '', email: '', password: '', password_confirmation: '' })
 
 watch(membres, (val) => console.log('membres changed:', val), { immediate: true })
 
@@ -43,37 +56,333 @@ const editingInlineArret = reactive<Record<number, { id: number; name: string; l
 const ligneColorDrafts = reactive<Record<number, string>>({})
 
 const chauffeurRows = computed(() =>
-  membres.value.filter((m) => {
-    const role = m.role as string
-    return role === 'chauffeur_bus'
-  })
+  chauffeurs.value
 )
+
+const stats = computed(() => statistiquesStore.stats)
+
+const numberFormatter = new Intl.NumberFormat('fr-FR')
+
+const formatCount = (value: number) => numberFormatter.format(value)
+
+const formatPercent = (value: number) => `${Math.round(value)}%`
+
+const trendGlyph = (trend: 'up' | 'down' | 'flat') => {
+  if (trend === 'up') return '↗'
+  if (trend === 'down') return '↘'
+  return '→'
+}
+
+const chartRoleLabels: Record<string, string> = {
+  membre: 'Membres',
+  conducteur: 'Conducteurs',
+  chauffeur_bus: 'Ch. bus',
+  admin: 'Admins',
+}
+
+const chartRoleColors: Record<string, string> = {
+  membre: '#ffe180',
+  conducteur: '#c8b37a',
+  chauffeur_bus: '#9f9065',
+  admin: '#f7c85f',
+}
+
+const statsCards = computed(() => {
+  const current = stats.value
+  const totalUsers = current?.membres?.total ?? 0
+  const activeUsers = current?.membres?.actifs ?? 0
+  const bannedUsers = current?.membres?.bannis ?? 0
+  const trajetsTotal = current?.trajets?.total ?? 0
+  const trajetsActifs = current?.trajets?.actifs ?? 0
+  const trajetsComplets = current?.trajets?.complets ?? 0
+  const reservationsTotal = current?.reservations?.total ?? 0
+  const reservationsPending = current?.reservations?.en_attente ?? 0
+  const reservationsAccepted = current?.reservations?.acceptees ?? 0
+  const busLines = current?.bus?.lignes ?? 0
+  const busDrivers = current?.bus?.chauffeurs ?? 0
+  const incidents = current?.bus?.incidents ?? 0
+  const docsPending = current?.documents?.en_attente ?? 0
+  const docsApproved = current?.documents?.approuves ?? 0
+
+  return [
+    {
+      key: 'users',
+      label: 'Utilisateurs',
+      value: totalUsers,
+      detail: `${formatCount(activeUsers)} actifs • ${formatCount(bannedUsers)} bannis`,
+      icon: '👥',
+      trend: activeUsers >= bannedUsers ? 'up' : 'down',
+      trendLabel: activeUsers >= bannedUsers ? 'Santé globale' : 'Surveillance',
+      accent: '#ffe180',
+      gradient: 'linear-gradient(135deg, rgba(255, 225, 128, 0.22), rgba(27, 61, 47, 0.96))',
+    },
+    {
+      key: 'trajets',
+      label: 'Trajets',
+      value: trajetsTotal,
+      detail: `${formatCount(trajetsActifs)} actifs • ${formatCount(trajetsComplets)} terminés`,
+      icon: '🛣️',
+      trend: trajetsTotal > 0 ? 'up' : 'flat',
+      trendLabel: 'Activité',
+      accent: '#c8b37a',
+      gradient: 'linear-gradient(135deg, rgba(200, 179, 122, 0.25), rgba(27, 61, 47, 0.96))',
+    },
+    {
+      key: 'reservations',
+      label: 'Réservations',
+      value: reservationsTotal,
+      detail: `${formatCount(reservationsPending)} en attente • ${formatCount(reservationsAccepted)} acceptées`,
+      icon: '🎫',
+      trend: reservationsPending > reservationsAccepted ? 'down' : reservationsAccepted > 0 ? 'up' : 'flat',
+      trendLabel: 'Flux',
+      accent: '#f7c85f',
+      gradient: 'linear-gradient(135deg, rgba(247, 200, 95, 0.22), rgba(27, 61, 47, 0.96))',
+    },
+    {
+      key: 'bus',
+      label: 'Lignes bus',
+      value: busLines,
+      detail: `${formatCount(busDrivers)} chauffeurs • mobilité active`,
+      icon: '🚌',
+      trend: busDrivers > 0 ? 'up' : 'flat',
+      trendLabel: 'Réseau',
+      accent: '#9f9065',
+      gradient: 'linear-gradient(135deg, rgba(159, 144, 101, 0.28), rgba(27, 61, 47, 0.96))',
+    },
+    {
+      key: 'incidents',
+      label: 'Incidents',
+      value: incidents,
+      detail: 'À traiter rapidement',
+      icon: '⚠️',
+      trend: incidents > 0 ? 'down' : 'flat',
+      trendLabel: 'À réduire',
+      accent: '#ff9e7a',
+      gradient: 'linear-gradient(135deg, rgba(255, 158, 122, 0.22), rgba(27, 61, 47, 0.96))',
+    },
+    {
+      key: 'documents',
+      label: 'Docs en attente',
+      value: docsPending,
+      detail: `${formatCount(docsApproved)} approuvés • revue admin`,
+      icon: '📄',
+      trend: docsPending > 0 ? 'down' : 'flat',
+      trendLabel: 'Validation',
+      accent: '#d7d0a7',
+      gradient: 'linear-gradient(135deg, rgba(215, 208, 167, 0.22), rgba(27, 61, 47, 0.96))',
+    },
+  ]
+})
+
+const userRoleBars = computed(() => {
+  const roleEntries = stats.value?.membres?.par_role ?? []
+  const orderedRoles = ['membre', 'conducteur', 'chauffeur_bus', 'admin']
+  const mapped = roleEntries
+    .map((entry) => ({
+      key: entry.role,
+      label: chartRoleLabels[entry.role] ?? entry.role.replace(/_/g, ' '),
+      value: entry.total,
+      color: chartRoleColors[entry.role] ?? '#ffe180',
+    }))
+    .sort((left, right) => {
+      const leftIndex = orderedRoles.indexOf(left.key)
+      const rightIndex = orderedRoles.indexOf(right.key)
+      return (leftIndex === -1 ? orderedRoles.length : leftIndex) - (rightIndex === -1 ? orderedRoles.length : rightIndex)
+    })
+
+  if (mapped.length > 0) return mapped
+
+  return [
+    {
+      key: 'total',
+      label: 'Utilisateurs',
+      value: stats.value?.membres?.total ?? 0,
+      color: '#ffe180',
+    },
+  ]
+})
+
+const reservationSegments = computed(() => {
+  const current = stats.value?.reservations
+  const segments = [
+    { key: 'pending', label: 'En attente', value: current?.en_attente ?? 0, color: '#ffe180' },
+    { key: 'accepted', label: 'Acceptées', value: current?.acceptees ?? 0, color: '#9f9065' },
+  ].filter((segment) => segment.value > 0)
+
+  if (segments.length > 0) return segments
+
+  return [{ key: 'total', label: 'Total', value: current?.total ?? 0, color: '#ffe180' }]
+})
+
+const reservationTotal = computed(() => reservationSegments.value.reduce((sum, segment) => sum + segment.value, 0))
+
+const reservationGradient = computed(() => {
+  const segments = reservationSegments.value
+  const total = reservationTotal.value
+
+  if (!total) {
+    return 'conic-gradient(rgba(255, 225, 128, 0.16) 0deg 360deg)'
+  }
+
+  let cursor = 0
+  const stops = segments.map((segment) => {
+    const start = (cursor / total) * 360
+    cursor += segment.value
+    const end = (cursor / total) * 360
+    return `${segment.color} ${start}deg ${end}deg`
+  })
+
+  return `conic-gradient(${stops.join(', ')})`
+})
+
+const reservationLegend = computed(() => {
+  const total = reservationTotal.value || 1
+  return reservationSegments.value.map((segment) => ({
+    ...segment,
+    percent: (segment.value / total) * 100,
+  }))
+})
+
+const activityBars = computed(() =>
+  statsCards.value.map((card) => ({
+    key: card.key,
+    label: card.label,
+    shortLabel: card.label === 'Docs en attente' ? 'Docs' : card.label,
+    value: card.value,
+    color: card.accent,
+  }))
+)
+
+const roleChartMax = computed(() => Math.max(...userRoleBars.value.map((bar) => bar.value), 1))
+const activityChartMax = computed(() => Math.max(...activityBars.value.map((bar) => bar.value), 1))
+const roleChartTicks = computed(() => Array.from({ length: 4 }, (_, index) => Math.round((roleChartMax.value * (4 - index)) / 4)))
+const activityChartTicks = computed(() => Array.from({ length: 4 }, (_, index) => Math.round((activityChartMax.value * (4 - index)) / 4)))
+const roleSlotWidth = computed(() => 420 / Math.max(userRoleBars.value.length, 1))
+const activitySlotWidth = computed(() => 700 / Math.max(activityBars.value.length, 1))
+const activityChartTop = 42
+const activityChartStep = 58
+const activityChartBaseline = 276
+const activityChartHeight = 168
+
+const DAY_ALIASES: Record<string, string> = {
+  monday: 'monday',
+  lundi: 'monday',
+  lun: 'monday',
+  tuesday: 'tuesday',
+  mardi: 'tuesday',
+  mar: 'tuesday',
+  wednesday: 'wednesday',
+  mercredi: 'wednesday',
+  mer: 'wednesday',
+  thursday: 'thursday',
+  jeudi: 'thursday',
+  jeu: 'thursday',
+  friday: 'friday',
+  vendredi: 'friday',
+  ven: 'friday',
+  saturday: 'saturday',
+  samedi: 'saturday',
+  sam: 'saturday',
+  sunday: 'sunday',
+  dimanche: 'sunday',
+  dim: 'sunday',
+}
+
+const ENGLISH_TO_FRENCH: Record<string, string> = {
+  monday: 'lundi',
+  tuesday: 'mardi',
+  wednesday: 'mercredi',
+  thursday: 'jeudi',
+  friday: 'vendredi',
+  saturday: 'samedi',
+  sunday: 'dimanche',
+}
+
+const normalizeDaysInput = (input: string): string[] => {
+  const values = input
+    .split(',')
+    .map((value) => value.trim())
+    .map((value) => value.toLowerCase())
+    .map((value) => DAY_ALIASES[value])
+    .filter((value): value is string => Boolean(value))
+
+  return Array.from(new Set(values))
+}
+
+const resetHoraireForm = () => {
+  editingHoraireId.value = null
+  horaireForm.ligne_bus_id = 0
+  horaireForm.chauffeur_id = 0
+  horaireForm.departure_time = ''
+  horaireDaysInput.value = ''
+}
+
+const loadHoraires = async () => {
+  const horairesResponse = await adminService.getHoraires()
+  horaires.value = horairesResponse.data
+}
+
+const loadHoraireTabData = async () => {
+  const responses = await Promise.all([
+    adminService.getChauffeurs(),
+    adminService.getHoraires(),
+    ligneStore.fetchAll(),
+  ])
+  const chauffeurResp = responses[0]
+  const horairesResp = responses[1]
+  chauffeurs.value = chauffeurResp.data
+  horaires.value = horairesResp.data
+}
 
 const loadAll = async () => {
   try {
     console.log('loadAll called')
     await Promise.all([ligneStore.fetchAll(), incidentStore.fetchAll()])
-    const membResp = await adminService.getMembres()
+    const [membResp, chauffeurResp] = await Promise.all([
+      adminService.getMembres(),
+      adminService.getChauffeurs(),
+    ])
     console.log('membResp raw:', membResp)
     membres.value = membResp.data
     console.log('membres.value after assign:', membres.value)
+    chauffeurs.value = chauffeurResp.data
   } catch (err) {
     console.error('Error loading admin data:', err)
     throw err
   }
 }
 
-// Watch route query param for tab
-watch(() => route.query.tab, (newTab) => {
-  const validTabs = ['lignes', 'incidents', 'chauffeurs', 'arrets', 'horaires', 'documents', 'signalements', 'membres', 'statistiques']
-  if (newTab && validTabs.includes(newTab as string)) {
-    tab.value = newTab as any
+const validTabs = ['lignes', 'incidents', 'chauffeurs', 'arrets', 'horaires', 'documents', 'signalements', 'membres', 'statistiques'] as const
+
+const resolveTabFromRoute = () => {
+  const queryTab = route.query.tab
+  if (typeof queryTab === 'string' && validTabs.includes(queryTab as typeof validTabs[number])) {
+    return queryTab as typeof validTabs[number]
   }
+
+  const pathSegment = route.path.split('/')[2]
+  if (pathSegment && validTabs.includes(pathSegment as typeof validTabs[number])) {
+    return pathSegment as typeof validTabs[number]
+  }
+
+  return 'lignes' as const
+}
+
+// Watch both the legacy query param and the new path-based routes for tab selection.
+watch(() => [route.path, route.query.tab], () => {
+  tab.value = resolveTabFromRoute() as any
 }, { immediate: true })
 
 // Watch tab changes to update route
-watch(tab, (newTab) => {
-  router.push({ query: { tab: newTab } })
+watch(tab, async (newTab) => {
+  router.push(newTab === 'lignes' ? '/admin/lignes' : `/admin/${newTab}`)
+  if (newTab === 'horaires') {
+    try {
+      await loadHoraireTabData()
+    } catch (err: any) {
+      horaireError.value = err?.response?.data?.message || 'Erreur de chargement des horaires'
+    }
+  }
 }, { immediate: false })
 
 const submitArret = async () => {
@@ -194,36 +503,61 @@ const saveInlineArret = async (ligneId: number) => {
 }
 
 const submitHoraire = async () => {
+  horaireError.value = null
+  const normalizedDays = normalizeDaysInput(horaireDaysInput.value)
+  if (!normalizedDays.length) {
+    horaireError.value = 'Veuillez entrer au moins un jour valide (ex: lundi, mardi).'
+    return
+  }
+
   const payload = {
     ligne_bus_id: Number(horaireForm.ligne_bus_id),
     chauffeur_id: Number(horaireForm.chauffeur_id),
     departure_time: horaireForm.departure_time,
-    days: horaireForm.days,
+    days: normalizedDays,
   }
-  if (editingHoraireId.value) {
-    await horaireService.update(editingHoraireId.value, payload)
-    editingHoraireId.value = null
-  } else {
-    await horaireService.create(payload)
+
+  try {
+    if (editingHoraireId.value) {
+      const response = await adminService.updateHoraire(editingHoraireId.value, payload)
+      const idx = horaires.value.findIndex((h) => h.id === editingHoraireId.value)
+      if (idx >= 0) {
+        horaires.value[idx] = response.data as AdminHoraire
+      }
+    } else {
+      const response = await adminService.createHoraire(payload)
+      horaires.value = [response.data as AdminHoraire, ...horaires.value]
+    }
+
+    resetHoraireForm()
+    await ligneStore.fetchAll()
+  } catch (err: any) {
+    horaireError.value = err?.response?.data?.message || 'Erreur lors de la sauvegarde de l\'horaire'
   }
-  horaireForm.ligne_bus_id = 0
-  horaireForm.chauffeur_id = 0
-  horaireForm.departure_time = ''
-  horaireForm.days = []
-  await ligneStore.fetchAll()
 }
 
-const editHoraire = (h: any) => {
+const editHoraire = (h: AdminHoraire) => {
   editingHoraireId.value = h.id
   horaireForm.ligne_bus_id = h.ligne_bus_id
-  horaireForm.chauffeur_id = h.chauffeur_id
+  horaireForm.chauffeur_id = h.chauffeur_id || 0
   horaireForm.departure_time = h.departure_time
-  horaireForm.days = Array.isArray(h.days) ? h.days : []
+
+  const frenchDays = Array.isArray(h.days)
+    ? h.days
+        .map((day) => ENGLISH_TO_FRENCH[day])
+        .filter((day): day is string => Boolean(day))
+        .join(', ')
+    : ''
+
+  horaireDaysInput.value = frenchDays
+
+  document.querySelector('.inline-form')?.scrollIntoView({ behavior: 'smooth' })
 }
 
 const deleteHoraire = async (id: number) => {
   if (!confirm('Confirmer suppression de cet horaire ?')) return
-  await horaireService.delete(id)
+  await adminService.deleteHoraire(id)
+  horaires.value = horaires.value.filter((horaire) => horaire.id !== id)
   await ligneStore.fetchAll()
 }
 
@@ -307,6 +641,35 @@ const removeMembre = async (membreId: number) => {
   await adminService.deleteMembre(membreId)
   membres.value = membres.value.filter((m) => m.id !== membreId)
 }
+
+const submitChauffeur = async () => {
+  chauffeurError.value = null
+
+  try {
+    const response = await adminService.createChauffeur({
+      name: chauffeurForm.name,
+      email: chauffeurForm.email,
+      password: chauffeurForm.password,
+      password_confirmation: chauffeurForm.password_confirmation,
+    })
+
+    chauffeurs.value = [response.data, ...chauffeurs.value]
+    chauffeurForm.name = ''
+    chauffeurForm.email = ''
+    chauffeurForm.password = ''
+    chauffeurForm.password_confirmation = ''
+  } catch (err: any) {
+    chauffeurError.value = err?.response?.data?.message || 'Erreur lors de la creation du chauffeur'
+  }
+}
+
+const removeChauffeur = async (chauffeurId: number) => {
+  if (!window.confirm('Confirmer la suppression de ce chauffeur ?')) return
+
+  await adminService.deleteChauffeur(chauffeurId)
+  chauffeurs.value = chauffeurs.value.filter((chauffeur) => chauffeur.id !== chauffeurId)
+}
+
 const approveDocument = async (id: number) => {
   await documentStore.approve(id)
 }
@@ -367,6 +730,9 @@ onMounted(async () => {
       signalementStore.fetchAll(),
       statistiquesStore.fetchStats()
     ])
+    if (tab.value === 'horaires') {
+      await loadHoraires()
+    }
   } catch (err: any) {
     membreError.value = err?.response?.data?.message || 'Erreur de chargement admin'
   }
@@ -484,21 +850,25 @@ onMounted(async () => {
     </div>
 
     <div v-if="tab === 'chauffeurs'" class="panel">
-      <p v-if="membreError" class="error">{{ membreError }}</p>
+      <form class="inline-form" @submit.prevent="submitChauffeur">
+        <input v-model="chauffeurForm.name" type="text" placeholder="Nom" required />
+        <input v-model="chauffeurForm.email" type="email" placeholder="Email" required />
+        <input v-model="chauffeurForm.password" type="password" placeholder="Mot de passe" required />
+        <input v-model="chauffeurForm.password_confirmation" type="password" placeholder="Confirmation" required />
+        <button type="submit" class="primary-btn">Creer chauffeur</button>
+      </form>
+
+      <p v-if="chauffeurError" class="error">{{ chauffeurError }}</p>
 
       <article v-for="membre in chauffeurRows" :key="membre.id" class="row">
         <div>
           <h4>{{ membre.name }}</h4>
           <small>{{ membre.email }}</small>
+          <small>{{ membre.created_at }}</small>
         </div>
         <div class="row-actions">
-          <select :value="membre.role" @change="setRole(membre.id, ($event.target as HTMLSelectElement).value)">
-            <option value="membre">membre</option>
-            <option value="conducteur">conducteur</option>
-            <option value="chauffeur_bus">chauffeur_bus</option>
-            <option value="admin">admin</option>
-          </select>
-          <button type="button" class="danger-btn small" @click="removeMembre(membre.id)">Supprimer</button>
+          <span class="status-pill active">chauffeur_bus</span>
+          <button type="button" class="danger-btn small" @click="removeChauffeur(membre.id)">Supprimer</button>
         </div>
       </article>
     </div>
@@ -543,23 +913,29 @@ onMounted(async () => {
           <option v-for="m in chauffeurRows" :key="m.id" :value="m.id">{{ m.name }}</option>
         </select>
         <input v-model="horaireForm.departure_time" type="time" required />
-        <input v-model="horaireForm.days" type="text" placeholder="jours (comma-separated)" @change="horaireForm.days = (horaireForm.days as unknown as string).split(',').map(s=>s.trim())" />
+        <input v-model="horaireDaysInput" type="text" placeholder="Jours (ex: lundi, mardi)" required />
         <button type="submit" class="primary-btn">{{ editingHoraireId ? 'Mettre a jour' : 'Nouvel horaire' }}</button>
       </form>
 
-      <article v-for="ligne in ligneStore.lignes" :key="'horaire-'+ligne.id" class="row">
+      <p v-if="horaireError" class="error">{{ horaireError }}</p>
+      <p v-if="!chauffeurRows.length" class="info">Aucun chauffeur disponible.</p>
+
+      <p v-if="!horaires.length" class="info">Aucun horaire.</p>
+
+      <article v-for="h in horaires" :key="'horaire-'+h.id" class="row">
         <div>
-          <h4>{{ ligne.name }}</h4>
+          <h4>{{ h.ligne?.name || `Ligne #${h.ligne_bus_id}` }}</h4>
+          <p>Chauffeur: {{ h.chauffeur?.name || (h.chauffeur_id ?? 'N/A') }}</p>
+          <small>Jour(s): {{ (h.days || []).join(', ') }}</small>
+          <br />
+          <small>Heure depart: {{ h.departure_time }}</small>
+          <br />
+          <small>Heure arrivee: N/A</small>
         </div>
-        <ul class="details">
-          <li v-for="h in (ligne.horaires || [])" :key="h.id">
-            {{ h.departure_time }} — {{ (h.days || []).join(', ') }} — Chauffeur: {{ h.chauffeur?.name || (h.chauffeur_id ?? 'N/A') }}
-            <div class="row-actions">
-              <button type="button" class="primary-btn small" @click="editHoraire(h)">Editer</button>
-              <button type="button" class="danger-btn small" @click="deleteHoraire(h.id)">Supprimer</button>
-            </div>
-          </li>
-        </ul>
+        <div class="row-actions">
+          <button type="button" class="primary-btn small" @click="editHoraire(h)">Editer</button>
+          <button type="button" class="danger-btn small" @click="deleteHoraire(h.id)">Supprimer</button>
+        </div>
       </article>
     </div>
 
@@ -649,40 +1025,181 @@ onMounted(async () => {
       </article>
     </div>
 
-    <div v-if="tab === 'statistiques'" class="panel">
-      <h3>Statistiques</h3>
-      <div v-if="statistiquesStore.stats" class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon">👥</div>
-          <div class="stat-value">{{ statistiquesStore.stats.membres?.total || 0 }}</div>
-          <div class="stat-label">Utilisateurs</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🛣️</div>
-          <div class="stat-value">{{ statistiquesStore.stats.trajets?.total || 0 }}</div>
-          <div class="stat-label">Trajets</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🎫</div>
-          <div class="stat-value">{{ statistiquesStore.stats.reservations?.total || 0 }}</div>
-          <div class="stat-label">Réservations</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🚌</div>
-          <div class="stat-value">{{ statistiquesStore.stats.bus?.lignes || 0 }}</div>
-          <div class="stat-label">Lignes Bus</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">⚠️</div>
-          <div class="stat-value">{{ statistiquesStore.stats.bus?.incidents || 0 }}</div>
-          <div class="stat-label">Incidents</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">📄</div>
-          <div class="stat-value">{{ statistiquesStore.stats.documents?.en_attente || 0 }}</div>
-          <div class="stat-label">Documents en attente</div>
-        </div>
+    <div v-if="tab === 'statistiques'" class="stats-dashboard">
+      <div v-if="stats" class="stats-stack">
+        <header class="stats-hero">
+          <div>
+            <p class="stats-eyebrow">Vue d’ensemble</p>
+            <h3>Statistiques de la plateforme</h3>
+            <p class="stats-subtitle">
+              Même source API, mais une lecture plus rapide avec indicateurs, graphiques et hiérarchie visuelle.
+            </p>
+          </div>
+          <div class="stats-meta">
+            <span class="meta-chip">API /admin/statistiques</span>
+            <span class="meta-chip meta-chip--accent">{{ formatCount(stats.membres?.total ?? 0) }} utilisateurs</span>
+          </div>
+        </header>
+
+        <section class="stats-kpi-grid" aria-label="Indicateurs clés">
+          <article
+            v-for="card in statsCards"
+            :key="card.key"
+            class="kpi-card"
+            :style="{ backgroundImage: card.gradient }"
+          >
+            <div class="kpi-card__top">
+              <div class="kpi-icon" :style="{ color: card.accent, borderColor: `${card.accent}55` }">
+                {{ card.icon }}
+              </div>
+              <span class="trend-pill" :class="`trend-pill--${card.trend}`">
+                <span>{{ trendGlyph(card.trend) }}</span>
+                {{ card.trendLabel }}
+              </span>
+            </div>
+            <div class="kpi-value">{{ formatCount(card.value) }}</div>
+            <div class="kpi-label">{{ card.label }}</div>
+            <div class="kpi-detail">{{ card.detail }}</div>
+          </article>
+        </section>
+
+        <section class="stats-charts-grid">
+          <article class="chart-panel">
+            <div class="chart-panel__header">
+              <div>
+                <p class="chart-kicker">Utilisateurs par rôle</p>
+                <h4>Répartition des comptes</h4>
+              </div>
+              <span class="chart-badge">{{ formatCount(stats.membres?.total ?? 0) }} comptes</span>
+            </div>
+
+            <div class="chart-panel__body chart-panel__body--split">
+              <svg class="bar-chart" viewBox="0 0 560 320" role="img" aria-label="Utilisateurs par rôle">
+                <g v-for="(tick, tickIndex) in roleChartTicks" :key="`role-tick-${tickIndex}`">
+                  <line x1="56" x2="520" :y1="50 + tickIndex * 60" :y2="50 + tickIndex * 60" class="grid-line" />
+                  <text x="18" :y="54 + tickIndex * 60" class="axis-label">{{ formatCount(tick) }}</text>
+                </g>
+                <g v-for="(bar, index) in userRoleBars" :key="bar.key">
+                  <rect
+                    :x="72 + (index * roleSlotWidth) + (roleSlotWidth * 0.14)"
+                    :y="228 - ((bar.value / roleChartMax) * 168)"
+                    :width="Math.max(roleSlotWidth * 0.58, 36)"
+                    :height="Math.max((bar.value / roleChartMax) * 168, bar.value ? 14 : 8)"
+                    :fill="bar.color"
+                    rx="16"
+                  />
+                  <text
+                    :x="72 + (index * roleSlotWidth) + (roleSlotWidth * 0.43)"
+                    :y="214 - ((bar.value / roleChartMax) * 168)"
+                    text-anchor="middle"
+                    class="bar-value"
+                  >
+                    {{ formatCount(bar.value) }}
+                  </text>
+                  <text
+                    :x="72 + (index * roleSlotWidth) + (roleSlotWidth * 0.43)"
+                    y="264"
+                    text-anchor="middle"
+                    class="bar-label"
+                  >
+                    {{ bar.label }}
+                  </text>
+                </g>
+              </svg>
+
+              <div class="chart-legend">
+                <div v-for="bar in userRoleBars" :key="bar.key" class="legend-item">
+                  <span class="legend-swatch" :style="{ background: bar.color }"></span>
+                  <div>
+                    <strong>{{ bar.label }}</strong>
+                    <span>{{ formatCount(bar.value) }} comptes</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="chart-panel">
+            <div class="chart-panel__header">
+              <div>
+                <p class="chart-kicker">Réservations par statut</p>
+                <h4>Répartition des demandes</h4>
+              </div>
+              <span class="chart-badge">{{ formatCount(reservationTotal) }} total</span>
+            </div>
+
+            <div class="chart-panel__body chart-panel__body--split">
+              <div class="donut-chart-wrap">
+                <div class="donut-chart" :style="{ background: reservationGradient }">
+                  <div class="donut-chart__inner">
+                    <strong>{{ formatCount(reservationTotal) }}</strong>
+                    <span>réservations</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="chart-legend">
+                <div v-for="segment in reservationLegend" :key="segment.key" class="legend-item">
+                  <span class="legend-swatch" :style="{ background: segment.color }"></span>
+                  <div>
+                    <strong>{{ segment.label }}</strong>
+                    <span>{{ formatCount(segment.value) }} • {{ formatPercent(segment.percent) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <article class="chart-panel chart-panel--wide">
+          <div class="chart-panel__header">
+            <div>
+              <p class="chart-kicker">Activité récente</p>
+              <h4>Lecture comparative des 6 KPI</h4>
+            </div>
+            <span class="chart-badge">Série synthétique</span>
+          </div>
+
+          <div class="chart-panel__body">
+              <svg class="bar-chart bar-chart--wide" viewBox="0 0 820 340" role="img" aria-label="Activité récente">
+              <g v-for="(tick, tickIndex) in activityChartTicks" :key="`activity-tick-${tickIndex}`">
+                <line x1="46" x2="790" :y1="activityChartTop + tickIndex * activityChartStep" :y2="activityChartTop + tickIndex * activityChartStep" class="grid-line" />
+                <text x="12" :y="activityChartTop + 4 + tickIndex * activityChartStep" class="axis-label">{{ formatCount(tick) }}</text>
+              </g>
+
+              <line x1="46" x2="790" :y1="activityChartBaseline" :y2="activityChartBaseline" class="grid-line grid-line--baseline" />
+
+              <g v-for="(bar, index) in activityBars" :key="bar.key">
+                <rect
+                  :x="52 + (index * activitySlotWidth) + (activitySlotWidth * 0.12)"
+                  :y="activityChartBaseline - ((bar.value / activityChartMax) * activityChartHeight)"
+                  :width="Math.max(activitySlotWidth * 0.58, 44)"
+                  :height="Math.max((bar.value / activityChartMax) * activityChartHeight, bar.value ? 14 : 8)"
+                  :fill="bar.color"
+                  rx="18"
+                />
+                <text
+                  :x="52 + (index * activitySlotWidth) + (activitySlotWidth * 0.41)"
+                  :y="activityChartBaseline - ((bar.value / activityChartMax) * activityChartHeight) - 12"
+                  text-anchor="middle"
+                  class="bar-value"
+                >
+                  {{ formatCount(bar.value) }}
+                </text>
+                <text
+                  :x="52 + (index * activitySlotWidth) + (activitySlotWidth * 0.41)"
+                  :y="index >= 3 ? activityChartBaseline + 24 : activityChartBaseline + 34"
+                  text-anchor="middle"
+                  class="bar-label"
+                >
+                  {{ bar.shortLabel }}
+                </text>
+              </g>
+            </svg>
+          </div>
+        </article>
       </div>
+
       <p v-else class="info">Chargement des statistiques...</p>
     </div>
   </section>
@@ -790,8 +1307,15 @@ onMounted(async () => {
   background: rgba(253, 249, 240, 0.07);
   border: 1px solid rgba(253, 249, 240, 0.15);
   color: #fdf9f0;
+  color-scheme: dark;
   padding: 10px 14px;
   width: 100%;
+}
+
+.inline-form select option,
+.row-actions select option {
+  background: #1b3d2f;
+  color: #fdf9f0;
 }
 
 .inline-form input::placeholder,
@@ -1084,6 +1608,344 @@ onMounted(async () => {
   font-size: 15px;
 }
 
+.stats-dashboard {
+  display: grid;
+  gap: 24px;
+}
+
+.stats-stack {
+  display: grid;
+  gap: 24px;
+}
+
+.stats-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+  background: var(--card, rgba(253, 249, 240, 0.08));
+  border: 1px solid var(--border, rgba(253, 249, 240, 0.15));
+  border-radius: 24px;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+.stats-eyebrow {
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  color: rgba(253, 249, 240, 0.58);
+}
+
+.stats-hero h3 {
+  margin: 0;
+  color: #fdf9f0;
+  font-size: clamp(1.4rem, 1.2vw + 1rem, 2rem);
+}
+
+.stats-subtitle {
+  margin: 8px 0 0;
+  color: rgba(253, 249, 240, 0.66);
+  line-height: 1.55;
+  max-width: 58ch;
+}
+
+.stats-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(253, 249, 240, 0.15);
+  background: rgba(253, 249, 240, 0.06);
+  color: rgba(253, 249, 240, 0.82);
+  font-size: 13px;
+}
+
+.meta-chip--accent {
+  background: rgba(255, 225, 128, 0.14);
+  border-color: rgba(255, 225, 128, 0.3);
+  color: #ffe180;
+}
+
+.stats-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 198px;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(253, 249, 240, 0.14);
+  background: var(--card, rgba(253, 249, 240, 0.08));
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  color: #fdf9f0;
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  inset: auto -22% -38% auto;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 225, 128, 0.22), transparent 68%);
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.kpi-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kpi-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  border: 1px solid rgba(253, 249, 240, 0.14);
+  background: rgba(253, 249, 240, 0.06);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  flex: none;
+}
+
+.trend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(253, 249, 240, 0.12);
+  background: rgba(253, 249, 240, 0.06);
+  color: rgba(253, 249, 240, 0.78);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.trend-pill--up {
+  border-color: rgba(255, 225, 128, 0.3);
+  color: #ffe180;
+}
+
+.trend-pill--down {
+  border-color: rgba(255, 158, 122, 0.28);
+  color: #ffcfbb;
+}
+
+.trend-pill--flat {
+  color: rgba(253, 249, 240, 0.72);
+}
+
+.kpi-value {
+  margin-top: 18px;
+  font-size: clamp(2.2rem, 3.2vw, 3.4rem);
+  line-height: 0.95;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #fff1a6;
+}
+
+.kpi-label {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fdf9f0;
+}
+
+.kpi-detail {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(253, 249, 240, 0.68);
+}
+
+.stats-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.chart-panel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid var(--border, rgba(253, 249, 240, 0.15));
+  background: var(--card, rgba(253, 249, 240, 0.08));
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+.chart-panel--wide {
+  margin-top: 4px;
+}
+
+.chart-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chart-kicker {
+  margin: 0 0 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(253, 249, 240, 0.55);
+}
+
+.chart-panel__header h4 {
+  margin: 0;
+  color: #fdf9f0;
+  font-size: 18px;
+}
+
+.chart-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 225, 128, 0.12);
+  border: 1px solid rgba(255, 225, 128, 0.22);
+  color: #ffe180;
+  font-size: 12px;
+}
+
+.chart-panel__body {
+  display: grid;
+  gap: 18px;
+}
+
+.chart-panel__body--split {
+  grid-template-columns: minmax(0, 1.12fr) minmax(220px, 0.88fr);
+  align-items: center;
+}
+
+.bar-chart {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grid-line {
+  stroke: rgba(253, 249, 240, 0.1);
+  stroke-width: 1;
+}
+
+.axis-label {
+  fill: rgba(253, 249, 240, 0.46);
+  font-size: 12px;
+}
+
+.bar-value {
+  fill: #ffe180;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bar-label {
+  fill: rgba(253, 249, 240, 0.7);
+  font-size: 12px;
+}
+
+.chart-legend {
+  display: grid;
+  gap: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(253, 249, 240, 0.05);
+  border: 1px solid rgba(253, 249, 240, 0.1);
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.04);
+  flex: none;
+}
+
+.legend-item strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #fdf9f0;
+  font-size: 14px;
+}
+
+.legend-item span {
+  display: block;
+  color: rgba(253, 249, 240, 0.66);
+  font-size: 12px;
+}
+
+.donut-chart-wrap {
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+}
+
+.donut-chart {
+  width: 210px;
+  height: 210px;
+  border-radius: 50%;
+  padding: 18px;
+  box-shadow: inset 0 0 0 1px rgba(253, 249, 240, 0.08), 0 18px 28px rgba(0, 0, 0, 0.18);
+  display: grid;
+  place-items: center;
+}
+
+.donut-chart__inner {
+  width: 124px;
+  height: 124px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background: rgba(27, 61, 47, 0.96);
+  border: 1px solid rgba(253, 249, 240, 0.12);
+  color: #fdf9f0;
+  line-height: 1.15;
+}
+
+.donut-chart__inner strong {
+  display: block;
+  font-size: 1.95rem;
+  color: #ffe180;
+}
+
+.donut-chart__inner span {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(253, 249, 240, 0.68);
+}
+
 @media (min-width: 980px) {
   .inline-form {
     grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
@@ -1091,8 +1953,16 @@ onMounted(async () => {
 }
 
 @media (max-width: 1024px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .stats-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .stats-charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-panel__body--split {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1101,8 +1971,27 @@ onMounted(async () => {
     padding: 40px 16px;
   }
 
-  .stats-grid {
+  .stats-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats-kpi-grid {
     grid-template-columns: 1fr;
+  }
+
+  .chart-panel {
+    padding: 18px;
+  }
+
+  .donut-chart {
+    width: 180px;
+    height: 180px;
+  }
+
+  .donut-chart__inner {
+    width: 108px;
+    height: 108px;
   }
 
   .row {

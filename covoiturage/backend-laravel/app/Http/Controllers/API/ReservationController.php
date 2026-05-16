@@ -11,6 +11,7 @@ use App\Models\Reservation;
 use App\Services\ReservationService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ReservationController extends Controller
 {
@@ -20,18 +21,25 @@ class ReservationController extends Controller
         private readonly ReservationService $service
     ) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $reservations = $this->service->getMyReservations(auth()->user());
+        $reservations = $this->service->getMyReservations($request->user());
 
         return $this->success(ReservationResource::collection($reservations)->response()->getData(true));
     }
 
     public function store(StoreReservationRequest $request): JsonResponse
     {
-        $reservation = $this->service->create($request->validated(), auth()->user());
+        $reservation = $this->service->create($request->validated(), $request->user());
 
         return $this->success(new ReservationResource($reservation), 'Réservation créée', 201);
+    }
+
+    public function mesDemandes(Request $request): JsonResponse
+    {
+        $reservations = $this->service->getPendingDemandesForConducteur($request->user());
+
+        return $this->success(ReservationResource::collection($reservations)->response()->getData(true));
     }
 
     public function show(int $id): JsonResponse
@@ -41,26 +49,26 @@ class ReservationController extends Controller
         return $this->success(new ReservationResource($reservation));
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
         $reservation = Reservation::findOrFail($id);
-        $this->service->cancel($reservation, auth()->user());
+        $this->service->cancel($reservation, $request->user());
 
         return $this->success(null, 'Réservation annulée');
     }
 
-    public function accept(int $id): JsonResponse
+    public function accept(Request $request, int $id): JsonResponse
     {
         $reservation = Reservation::with(['trajet'])->findOrFail($id);
-        $reservation = $this->service->accept($reservation, auth()->user());
+        $reservation = $this->service->accept($reservation, $request->user());
 
         return $this->success(new ReservationResource($reservation), 'Réservation acceptée');
     }
 
-    public function refuse(int $id): JsonResponse
+    public function refuse(Request $request, int $id): JsonResponse
     {
         $reservation = Reservation::with(['trajet'])->findOrFail($id);
-        $reservation = $this->service->refuse($reservation, auth()->user());
+        $reservation = $this->service->refuse($reservation, $request->user());
 
         return $this->success(new ReservationResource($reservation), 'Réservation refusée');
     }

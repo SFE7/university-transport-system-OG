@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -9,7 +9,16 @@ const route = useRoute()
 
 authStore.initFromStorage()
 
+onMounted(async () => {
+  const valid = await authStore.verifyToken()
+  if (!valid && route.meta.requiresAuth) {
+    router.replace({ name: 'login', query: { redirect: route.fullPath } })
+  }
+})
+
 const displayName = computed(() => authStore.membre?.name || 'Invite')
+const isAdmin = computed(() => authStore.membre?.role === 'admin')
+const isBusDriver = computed(() => authStore.membre?.role === 'chauffeur_bus')
 const accessDeniedMessage = computed(() =>
   route.query.error === '403' ? 'Acces refuse (403) : cette page est reservee a votre role.' : '',
 )
@@ -27,34 +36,37 @@ const handleLogout = async () => {
         <img src="/TrajetU.png" alt="TrajetU Logo" class="logo-img" />
       </RouterLink>
 
-      <header class="topbar">
+      <header class="topbar" :class="{ admin: isAdmin }">
         <nav class="nav-links">
           <template v-if="String(authStore.membre?.role) === 'admin'">
-            <RouterLink to="/admin?tab=lignes">Lignes</RouterLink>
-            <RouterLink to="/admin?tab=incidents">Incidents</RouterLink>
-            <RouterLink to="/admin?tab=chauffeurs">Chauffeurs</RouterLink>
-            <RouterLink to="/admin?tab=arrets">Arrets</RouterLink>
-            <RouterLink to="/admin?tab=horaires">Horaires</RouterLink>
-            <RouterLink to="/admin?tab=documents">Documents</RouterLink>
-            <RouterLink to="/admin?tab=signalements">Signalements</RouterLink>
-            <RouterLink to="/admin?tab=membres">Membres</RouterLink>
-            <RouterLink to="/admin?tab=statistiques">Statistiques</RouterLink>
+            <RouterLink to="/admin/lignes">Lignes</RouterLink>
+            <RouterLink to="/admin/incidents">Incidents</RouterLink>
+            <RouterLink to="/admin/chauffeurs">Chauffeurs</RouterLink>
+            <RouterLink to="/admin/arrets">Arrets</RouterLink>
+            <RouterLink to="/admin/horaires">Horaires</RouterLink>
+            <RouterLink to="/admin/documents">Documents</RouterLink>
+            <RouterLink to="/admin/signalements">Signalements</RouterLink>
+            <RouterLink to="/admin/membres">Membres</RouterLink>
+            <RouterLink to="/admin/statistiques">Statistiques</RouterLink>
+          </template>
+          <template v-else-if="isBusDriver">
+            <RouterLink to="/chauffeur/bus">Partager position</RouterLink>
           </template>
           <template v-else>
-            <RouterLink to="/trajets">Trajets</RouterLink>
-            <RouterLink v-if="authStore.isAuthenticated" to="/reservations">Reservations</RouterLink>
+            <RouterLink v-if="!authStore.isAuthenticated || authStore.membre?.role === 'membre'" to="/trajets">Trajets</RouterLink>
+            <RouterLink v-if="authStore.membre?.role === 'membre'" to="/reservations">Reservations</RouterLink>
             <RouterLink v-if="authStore.isAuthenticated" to="/history">Historique</RouterLink>
             <RouterLink v-if="authStore.isAuthenticated" to="/notifications">Notifications</RouterLink>
             <RouterLink v-if="authStore.isConducteur" to="/dashboard">Dashboard</RouterLink>
-            <RouterLink v-if="authStore.membre?.role === 'membre' || authStore.isConducteur" to="/chauffeur/bus/map">Map</RouterLink>
-            <RouterLink v-if="authStore.membre?.role === 'membre' || authStore.isConducteur" to="/chauffeur/bus/schedules">Horaires</RouterLink>
-            <RouterLink v-if="authStore.membre?.role === 'chauffeur_bus'" to="/chauffeur/bus">Partager position</RouterLink>
+            <RouterLink v-if="authStore.membre?.role === 'membre'" to="/chauffeur/bus/map">Map</RouterLink>
+            <RouterLink v-if="authStore.membre?.role === 'membre'" to="/chauffeur/bus/schedules">Horaires</RouterLink>
             <!-- Comparer feature removed -->
           </template>
+          <RouterLink v-if="authStore.isAuthenticated" to="/profil">Mon profil</RouterLink>
         </nav>
       </header>
 
-      <div class="auth-actions-fixed">
+      <div class="auth-actions-fixed" :class="{ admin: isAdmin }">
         <span class="welcome">Salut, {{ displayName }}</span>
         <RouterLink v-if="!authStore.isAuthenticated" class="btn ghost" to="/login">Login</RouterLink>
         <RouterLink v-if="!authStore.isAuthenticated" class="btn" to="/register">Register</RouterLink>
@@ -203,6 +215,11 @@ a {
   padding: 10px 24px;
 }
 
+.topbar.admin {
+  width: calc(100vw - 380px);
+  max-width: calc(100vw - 380px);
+}
+
 .nav-links {
   display: flex;
   gap: 8px;
@@ -246,12 +263,26 @@ a {
   z-index: 1001;
 }
 
+.auth-actions-fixed.admin {
+  top: 24px;
+  width: 170px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 6px;
+}
+
 .welcome {
   color: #9f9065;
   font-size: 18px;
   font-weight: 700;
   white-space: nowrap;
   margin-right: 8px;
+}
+
+.auth-actions-fixed.admin .welcome {
+  flex: 0 0 100%;
+  margin-right: 0;
+  text-align: right;
 }
 
 .content {
@@ -451,10 +482,26 @@ a {
     flex-direction: column;
     align-items: flex-start;
     padding: 16px 5vw;
+    width: auto;
+    max-width: 90vw;
+  }
+
+  .topbar.admin {
+    width: auto;
+    max-width: 90vw;
   }
 
   .nav-links {
     flex-wrap: wrap;
+  }
+
+  .auth-actions-fixed,
+  .auth-actions-fixed.admin {
+    position: static;
+    margin: 104px 24px 0 auto;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    width: calc(100% - 48px);
   }
 }
 </style>

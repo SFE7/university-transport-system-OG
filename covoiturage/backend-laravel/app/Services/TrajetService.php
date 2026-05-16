@@ -81,4 +81,14 @@ class TrajetService
     {
         return Trajet::where('membre_id', $actor->id)->paginate(15);
     }
+
+    public function getMyTrajets(Membre $actor): LengthAwarePaginator
+    {
+        abort_if($actor->role !== 'conducteur', 403);
+
+        return Trajet::where('membre_id', $actor->id)
+            ->with(['conducteur'])
+            ->orderByDesc('departure_time')
+            ->paginate(15);
+    }
 }

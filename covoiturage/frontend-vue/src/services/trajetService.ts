@@ -74,6 +74,11 @@ const getHistory = async (): Promise<PaginatedResponse<Trajet>> => {
   return response.data.data  // ← same fix
 }
 
+const getMine = async (): Promise<PaginatedResponse<Trajet>> => {
+  const response = await apiClient.get('/trajets/mes-trajets')
+  return response.data.data
+}
+
 export default {
   getAll,
   getOne,
@@ -81,4 +86,5 @@ export default {
   update,
   cancel,
   getHistory,
+  getMine,
 }

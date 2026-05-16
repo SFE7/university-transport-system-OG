@@ -34,7 +34,8 @@ const canReserve = computed(() => {
   return (
     authStore.isAuthenticated &&
     !authStore.isConducteur &&
-    trajet?.status === 'active'
+    trajet?.status === 'active' &&
+    Number(trajet?.available_seats ?? 0) > 0
   )
 })
 
@@ -118,7 +119,7 @@ onMounted(() => {
         <button v-if="canReserve" class="primary-btn" type="button" @click="handleReserve">
           Reserver
         </button>
-        <span v-else class="status">Connexion requise ou trajet indisponible.</span>
+        <span v-else class="status">Connexion requise, trajet indisponible, ou plus de places disponibles.</span>
       </div>
       <p v-if="actionMessage" class="success-message">{{ actionMessage }}</p>
       <p v-if="actionError" class="error-message">{{ actionError }}</p>
