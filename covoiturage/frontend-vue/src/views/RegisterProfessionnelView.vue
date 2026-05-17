@@ -32,9 +32,15 @@
         </div>
         <div class="form-group">
           <label class="form-label">Carte d'identité (jpg, png, pdf)</label>
-          <input ref="file" type="file" class="file-input" accept="image/*,.pdf" required />
+          <input
+            type="file"
+            class="file-input"
+            accept="image/*,.pdf"
+            required
+            @change="(e) => carteIdentite = (e.target as HTMLInputElement).files?.[0] ?? null"
+          />
           <span v-if="auth.validationErrors?.carte_identite?.[0]" class="field-error">{{ auth.validationErrors.carte_identite[0] }}</span>
-          <span v-if="file?.files?.[0]" class="file-name">{{ file.files[0].name }}</span>
+          <span v-if="carteIdentite" class="file-name">{{ carteIdentite.name }}</span>
         </div>
         <button class="primary-btn" type="submit" :disabled="isLoading">
           {{ isLoading ? 'Inscription en cours...' : "S'inscrire" }}
@@ -60,7 +66,7 @@ const email = ref('')
 const password = ref('')
 const password_confirmation = ref('')
 const phone = ref('')
-const file = ref<HTMLInputElement | null>(null)
+const carteIdentite = ref<File | null>(null)
 const isLoading = ref(false)
 
 const submit = async () => {
@@ -73,7 +79,16 @@ const submit = async () => {
     fd.append('password', password.value)
     fd.append('password_confirmation', password_confirmation.value)
     if (phone.value) fd.append('phone', phone.value)
-    if (file.value?.files?.[0]) fd.append('carte_identite', file.value.files[0])
+    if (!carteIdentite.value) {
+      auth.error = "Veuillez télécharger votre carte d'identité."
+      return
+    }
+    fd.append('carte_identite', carteIdentite.value)
+
+    console.log('[register] FormData entries:')
+    for (const [key, value] of fd.entries()) {
+      console.log(key, value)
+    }
 
     await auth.registerProfessionnel(fd)
     router.push('/trajets')

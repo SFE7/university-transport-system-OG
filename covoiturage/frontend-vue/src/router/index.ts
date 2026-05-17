@@ -41,6 +41,11 @@ const routes = [
   { path: '/membres/profil/edit', component: () => import('@/views/EditProfilView.vue'), meta: { requiresAuth: true, allowedRoles: ['membre', 'conducteur'] } },
   { path: '/profil/password', component: () => import('@/views/ChangePasswordView.vue'), meta: { requiresAuth: true, allowedRoles: ['membre', 'conducteur', 'chauffeur_bus'] } },
   {
+    path: '/documents/pending',
+    component: () => import('@/views/DocumentsPendingView.vue'),
+    meta: { requiresAuth: true, allowedRoles: ['membre', 'conducteur', 'chauffeur_bus', 'admin'] },
+  },
+  {
     path: '/history',
     component: () => import('@/views/TripHistoryView.vue'),
     meta: { requiresAuth: true, allowedRoles: ['membre', 'conducteur'] },

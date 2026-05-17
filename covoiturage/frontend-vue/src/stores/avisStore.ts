@@ -1,19 +1,19 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import avisService from '@/services/avisService'
+import avisService, { type CreateAvisPayload, type UpdateAvisPayload } from '@/services/avisService'
 import type { Avis } from '@/types'
 
 export const useAvisStore = defineStore('avis', () => {
-  const avisList = ref<Avis[]>([])
+  const avis = ref<Avis[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
-  const fetchByConducteur = async (membreId: number) => {
+  const fetchByConducteur = async (conducteurId: number) => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await avisService.getByConducteur(membreId)
-      avisList.value = response.data
+      const response = await avisService.getByCondukteur(conducteurId)
+      avis.value = response.data
       return response
     } catch (err: any) {
       error.value = err?.response?.data?.message || 'Failed to load avis'
@@ -23,17 +23,12 @@ export const useAvisStore = defineStore('avis', () => {
     }
   }
 
-  const create = async (payload: {
-    conducteur_id: number
-    trajet_id: number
-    rating: number
-    comment?: string
-  }) => {
+  const create = async (payload: CreateAvisPayload) => {
     isLoading.value = true
     error.value = null
     try {
       const response = await avisService.create(payload)
-      avisList.value.unshift(response.data)
+      avis.value.unshift(response.data)
       return response
     } catch (err: any) {
       error.value = err?.response?.data?.message || 'Failed to add avis'
@@ -43,19 +38,12 @@ export const useAvisStore = defineStore('avis', () => {
     }
   }
 
-  const update = async (id: number, payload: {
-    conducteur_id: number
-    trajet_id: number
-    rating: number
-    comment?: string
-  }) => {
+  const update = async (id: number, payload: UpdateAvisPayload) => {
     isLoading.value = true
     error.value = null
     try {
       const response = await avisService.update(id, payload)
-      // update local list
-      const idx = avisList.value.findIndex((a) => a.id === id)
-      if (idx >= 0) avisList.value[idx] = response.data
+      avis.value = avis.value.map((avisItem) => (avisItem.id === id ? response.data : avisItem))
       return response
     } catch (err: any) {
       error.value = err?.response?.data?.message || 'Failed to update avis'
@@ -69,8 +57,8 @@ export const useAvisStore = defineStore('avis', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await avisService.delete(id)
-      avisList.value = avisList.value.filter((a) => a.id !== id)
+      const response = await avisService.remove(id)
+      avis.value = avis.value.filter((avisItem) => avisItem.id !== id)
       return response
     } catch (err: any) {
       error.value = err?.response?.data?.message || 'Failed to delete avis'
@@ -81,12 +69,12 @@ export const useAvisStore = defineStore('avis', () => {
   }
 
   return {
-    avisList,
+    avis,
     isLoading,
     error,
     fetchByConducteur,
     create,
     update,
-    delete: remove,
+    remove,
   }
 })

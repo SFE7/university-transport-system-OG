@@ -7,6 +7,8 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+use App\Http\Resources\ReservationResource;
+
 class TrajetResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -23,6 +25,7 @@ class TrajetResource extends JsonResource
             'status' => $this->status,
             'membre_id' => $this->membre_id,
             'conducteur' => new MembreResource($this->whenLoaded('conducteur')),
+            'reservations' => ReservationResource::collection($this->whenLoaded('reservations')),
             'created_at' => $this->created_at,
         ];
     }

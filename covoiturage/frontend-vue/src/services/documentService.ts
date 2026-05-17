@@ -1,9 +1,14 @@
 import apiClient from '@/lib/apiClient'
 import type { ApiResponse } from '@/types'
-import type { DocumentSoumis } from '@/types/admin'
+import type { DocumentSoumis, DocumentStatusResponse } from '@/types/admin'
 
-const fetchPending = async (): Promise<ApiResponse<DocumentSoumis[]>> => {
-  const res = await apiClient.get<ApiResponse<DocumentSoumis[]>>('/documents')
+const fetchPending = async (): Promise<ApiResponse<DocumentSoumis[] | DocumentStatusResponse>> => {
+  const res = await apiClient.get<ApiResponse<DocumentSoumis[] | DocumentStatusResponse>>('/documents')
+  return res.data
+}
+
+const submit = async (payload: FormData): Promise<ApiResponse<DocumentStatusResponse>> => {
+  const res = await apiClient.post<ApiResponse<DocumentStatusResponse>>('/documents', payload)
   return res.data
 }
 
@@ -25,4 +30,4 @@ const fetchPreviewBlob = async (id: number): Promise<Blob> => {
   return res.data
 }
 
-export default { fetchPending, approve, reject, fetchPreviewBlob }
+export default { fetchPending, submit, approve, reject, fetchPreviewBlob }

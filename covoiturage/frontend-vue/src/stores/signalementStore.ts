@@ -23,12 +23,16 @@ export const useSignalementStore = defineStore('signalement', () => {
     }
   }
 
-  const create = async (payload: { reported_id: number; reason: string }) => {
+  const create = async (payload: { conducteur_id: number; trajet_id?: number | null; raison: string; description?: string | null }) => {
     isLoading.value = true
+    error.value = null
     try {
       const res = await signalementService.create(payload)
       list.value.unshift(res.data)
       return res
+    } catch (err: any) {
+      error.value = err?.response?.data?.message || Object.values(err?.response?.data?.errors || {})?.flat()?.[0] || 'Failed to create signalement'
+      throw err
     } finally {
       isLoading.value = false
     }

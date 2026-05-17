@@ -12,8 +12,18 @@ use Illuminate\Support\Facades\Storage;
 
 class TrajetService
 {
+    public function autoCompleteExpired(): void
+    {
+        Trajet::query()
+            ->where('status', 'active')
+            ->where('departure_time', '<', now())
+            ->update(['status' => 'completed']);
+    }
+
     public function getAll(array $filters = []): LengthAwarePaginator
     {
+        $this->autoCompleteExpired();
+
         $query = Trajet::with(['conducteur']);
 
         if (isset($filters['departure_point'])) {
@@ -79,7 +89,19 @@ class TrajetService
 
     public function getHistory(Membre $actor): LengthAwarePaginator
     {
-        return Trajet::where('membre_id', $actor->id)->paginate(15);
+        $this->autoCompleteExpired();
+
+        return Trajet::query()
+            ->with(['conducteur', 'reservations'])
+            ->whereIn('status', ['completed', 'cancelled'])
+            ->where(function ($query) use ($actor): void {
+                $query->where('membre_id', $actor->id)
+                    ->orWhereHas('reservations', function ($reservationQuery) use ($actor): void {
+                        $reservationQuery->where('membre_id', $actor->id);
+                    });
+            })
+            ->orderByDesc('departure_time')
+            ->paginate(15);
     }
 
     public function getMyTrajets(Membre $actor): LengthAwarePaginator

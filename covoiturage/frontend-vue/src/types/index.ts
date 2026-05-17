@@ -4,6 +4,8 @@ export interface Membre {
   email: string
   role: 'membre' | 'conducteur' | 'chauffeur_bus' | 'admin'
   phone: string | null
+  account_type: 'etudiant' | 'professionnel' | null
+  has_verified_documents: boolean
   is_suspended?: boolean
   is_banned?: boolean
   created_at: string
@@ -36,12 +38,11 @@ export interface Reservation {
 
 export interface Avis {
   id: number
-  reviewer_id: number
   conducteur_id: number
   trajet_id: number
-  rating: number
-  comment: string | null
-  reviewer: Membre | null
+  note: number
+  commentaire: string
+  membre_id: number
   created_at: string
 }
 

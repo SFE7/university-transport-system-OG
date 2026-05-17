@@ -115,7 +115,14 @@ export const useTrajetStore = defineStore('trajets', () => {
     error.value = null
     try {
       const response = await trajetService.getHistory()
-      history.value = response.data
+      const payload = response.data as unknown
+      const normalized = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as { data?: unknown })?.data)
+          ? (payload as { data: Trajet[] }).data
+          : []
+
+      history.value = normalized as Trajet[]
       return response
     } catch (err: any) {
       error.value = err?.response?.data?.message || 'Failed to load history'

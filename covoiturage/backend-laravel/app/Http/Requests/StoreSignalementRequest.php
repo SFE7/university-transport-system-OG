@@ -17,8 +17,15 @@ class StoreSignalementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'reported_id' => ['required', 'exists:membres,id', Rule::notIn([optional($this->user())->id])],
-            'reason' => 'required|string|min:10|max:1000',
+            'conducteur_id' => [
+                'required',
+                'integer',
+                Rule::exists('membres', 'id')->where('role', 'conducteur'),
+                Rule::notIn([optional($this->user())->id]),
+            ],
+            'trajet_id' => ['nullable', 'integer', 'exists:trajets,id'],
+            'raison' => 'required|string|min:10|max:1000',
+            'description' => 'nullable|string|max:2000',
         ];
     }
 }

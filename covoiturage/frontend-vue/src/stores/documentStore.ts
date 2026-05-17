@@ -1,7 +1,11 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import documentService from '@/services/documentService'
-import type { DocumentSoumis } from '@/types/admin'
+import type { DocumentSoumis, DocumentStatusResponse } from '@/types/admin'
+
+const normalizeDocuments = (payload: DocumentSoumis[] | DocumentStatusResponse) => {
+  return Array.isArray(payload) ? payload : payload.documents
+}
 
 export const useDocumentStore = defineStore('document', () => {
   const pending = ref<DocumentSoumis[]>([])
@@ -13,8 +17,7 @@ export const useDocumentStore = defineStore('document', () => {
     error.value = null
     try {
       const res = await documentService.fetchPending()
-      pending.value = res.data
-      console.log('documents[0]:', pending.value[0])
+      pending.value = normalizeDocuments(res.data)
       return res
     } catch (err: any) {
       error.value = err?.response?.data?.message || 'Failed to fetch documents'

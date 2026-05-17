@@ -2,7 +2,7 @@ import apiClient from '@/lib/apiClient'
 import type { ApiResponse, PaginatedResponse } from '@/types'
 import type { Signalement } from '@/types/admin'
 
-const create = async (payload: { reported_id: number; reason: string }) : Promise<ApiResponse<Signalement>> => {
+const create = async (payload: { conducteur_id: number; trajet_id?: number | null; raison: string; description?: string | null }) : Promise<ApiResponse<Signalement>> => {
   const res = await apiClient.post<ApiResponse<Signalement>>('/signalements', payload)
   return res.data
 }

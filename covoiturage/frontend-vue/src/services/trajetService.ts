@@ -71,7 +71,7 @@ const cancel = async (id: number): Promise<ApiResponse<null>> => {
 
 const getHistory = async (): Promise<PaginatedResponse<Trajet>> => {
   const response = await apiClient.get('/trajets/history')
-  return response.data.data  // ← same fix
+  return response.data
 }
 
 const getMine = async (): Promise<PaginatedResponse<Trajet>> => {

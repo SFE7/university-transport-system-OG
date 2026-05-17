@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { CAR_CATEGORIES } from '@/constants/carModels'
+import trajetService from '@/services/trajetService'
 import { useTrajetStore } from '@/stores/trajetStore'
 import { useReservationStore } from '@/stores/reservationStore'
 
@@ -17,6 +18,7 @@ const formError = ref('')
 const isSubmitting = ref(false)
 const staticPhotoFailed = ref(false)
 const uploadedPhotoPreview = ref<string | null>(null)
+const myTrajetsWithReservations = ref<any[]>([])
 const newTrajet = ref({
   departure_point: '',
   arrival_point: '',
@@ -154,12 +156,37 @@ const filteredDemandes = computed(() => {
   return demandes.value.filter((reservation) => reservation.trajet_id === selectedTrajetId.value)
 })
 
+const acceptedReservations = computed(() => {
+  return myTrajetsWithReservations.value.flatMap((trajet: any) => {
+    if (trajet.status !== 'active' || !Array.isArray(trajet.reservations)) {
+      return []
+    }
+
+    return trajet.reservations
+      .filter((reservation: any) => reservation.status === 'accepted')
+      .map((reservation: any) => ({
+        ...reservation,
+        trajet,
+      }))
+  })
+})
+
 const formatDate = (value: unknown) => {
   const date = new Date(String(value || ''))
   if (isNaN(date.getTime())) {
     return String(value || '')
   }
   return date.toLocaleString()
+}
+
+const cancelAccepted = async (reservationId: number) => {
+  actionError.value = ''
+  try {
+    await reservationStore.cancel(reservationId)
+    await reservationStore.fetchMyDemandes()
+  } catch (error: any) {
+    actionError.value = error?.response?.data?.message || 'Impossible d\'annuler la réservation.'
+  }
 }
 
 const selectTrajet = (trajetId: number) => {
@@ -184,6 +211,15 @@ onMounted(async () => {
     trajetStore.fetchMy(),
     reservationStore.fetchMyDemandes(),
   ])
+
+  const trajetDetails = await Promise.all(
+    mesTrajets.value.map(async (trajet: any) => {
+      const response = await trajetService.getOne(trajet.id)
+      return response.data
+    })
+  )
+
+  myTrajetsWithReservations.value = trajetDetails as any[]
 })
 </script>
 
@@ -308,6 +344,21 @@ onMounted(async () => {
         </div>
 
         <p v-if="actionError" class="error-message">{{ actionError }}</p>
+
+        <h3 class="subsection-title">Réservations acceptées</h3>
+        <div v-if="reservationStore.isLoading" class="status">Chargement des réservations...</div>
+        <p v-else-if="!acceptedReservations.length" class="empty-state">Aucune réservation acceptée pour le moment.</p>
+
+        <div v-else class="items-list">
+          <article v-for="reservation in acceptedReservations" :key="reservation.id" class="glass item-card">
+            <p class="muted">Membre: {{ reservation.membre?.name || `#${reservation.membre_id}` }}</p>
+            <p class="muted">Départ: {{ formatDate(reservation.trajet?.departure_time) }}</p>
+
+            <div class="button-row">
+              <button class="danger-btn" type="button" @click="cancelAccepted(reservation.id)">Annuler</button>
+            </div>
+          </article>
+        </div>
       </section>
     </div>
   </section>

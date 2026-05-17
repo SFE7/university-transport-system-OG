@@ -30,12 +30,14 @@ Route::prefix('v1')->group(function () {
     Route::get('/membres/{id}/avis', [AvisController::class, 'index'])->whereNumber('id');
 
     // Protected routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'ensure.documents.verified'])->group(function () {
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::patch('/auth/password', [AuthController::class, 'changePassword'])->middleware('role:membre,conducteur,chauffeur_bus,admin');
         Route::put('/membres/profil', [ProfilController::class, 'update']);
         Route::put('/conducteurs/vehicule', [ProfilController::class, 'updateVehicule'])->middleware('role:conducteur');
+        Route::get('/documents', [DocumentController::class, 'index']);
+        Route::post('/documents', [DocumentController::class, 'store']);
 
         Route::middleware('role:membre,conducteur')->group(function () {
             Route::post('/signalements', [SignalementController::class, 'store']);
@@ -95,7 +97,6 @@ Route::prefix('v1')->group(function () {
             Route::get('/chauffeurs',                    [ChauffeurController::class, 'index']);
             Route::post('/chauffeurs',                   [ChauffeurController::class, 'store']);
             Route::delete('/chauffeurs/{id}',            [ChauffeurController::class, 'destroy'])->whereNumber('id');
-            Route::get('/documents', [DocumentController::class, 'index']);
             Route::patch('/documents/{id}/approve', [DocumentController::class, 'approve'])->whereNumber('id');
             Route::patch('/documents/{id}/reject', [DocumentController::class, 'reject'])->whereNumber('id');
             Route::post('/lignes',                       [LigneBusController::class, 'store']);

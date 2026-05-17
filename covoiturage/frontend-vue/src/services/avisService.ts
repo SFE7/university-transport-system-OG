@@ -1,27 +1,29 @@
 import apiClient from '@/lib/apiClient'
-import type { ApiResponse, Avis, PaginatedResponse } from '@/types'
+import type { ApiResponse, Avis } from '@/types'
 
-const getByConducteur = async (membreId: number): Promise<PaginatedResponse<Avis>> => {
-  const response = await apiClient.get<PaginatedResponse<Avis>>(`/membres/${membreId}/avis`)
+export type CreateAvisPayload = {
+  conducteur_id: number
+  trajet_id: number
+  note: number
+  commentaire: string
+}
+
+export type UpdateAvisPayload = {
+  note: number
+  commentaire: string
+}
+
+const getByCondukteur = async (conducteurId: number): Promise<ApiResponse<Avis[]>> => {
+  const response = await apiClient.get<ApiResponse<Avis[]>>(`/membres/${conducteurId}/avis`)
   return response.data
 }
 
-const create = async (payload: {
-  conducteur_id: number
-  trajet_id: number
-  rating: number
-  comment?: string
-}): Promise<ApiResponse<Avis>> => {
+const create = async (payload: CreateAvisPayload): Promise<ApiResponse<Avis>> => {
   const response = await apiClient.post<ApiResponse<Avis>>('/avis', payload)
   return response.data
 }
 
-const update = async (id: number, payload: {
-  conducteur_id: number
-  trajet_id: number
-  rating: number
-  comment?: string
-}): Promise<ApiResponse<Avis>> => {
+const update = async (id: number, payload: UpdateAvisPayload): Promise<ApiResponse<Avis>> => {
   const response = await apiClient.put<ApiResponse<Avis>>(`/avis/${id}`, payload)
   return response.data
 }
@@ -32,8 +34,8 @@ const remove = async (id: number): Promise<ApiResponse<null>> => {
 }
 
 export default {
-  getByConducteur,
+  getByCondukteur,
   create,
   update,
-  delete: remove,
+  remove,
 }

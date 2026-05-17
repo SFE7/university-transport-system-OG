@@ -19,7 +19,10 @@ class SignalementFactory extends Factory
         return [
             'reporter_id' => null,
             'reported_id' => null,
+            'conducteur_id' => null,
+            'trajet_id' => null,
             'reason' => fake()->paragraph(),
+            'description' => fake()->optional()->paragraph(),
             'status' => fake()->randomElement(['en_attente', 'traite', 'archive']),
         ];
     }

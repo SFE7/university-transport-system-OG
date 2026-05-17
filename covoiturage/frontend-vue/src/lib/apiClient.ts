@@ -29,6 +29,15 @@ apiClient.interceptors.response.use(
         name: 'login',
         query: { redirect: router.currentRoute.value.fullPath },
       })
+    } else if (error.response?.status === 403 && error.response?.data?.code === 'DOCUMENTS_NOT_VERIFIED') {
+      const message = error.response?.data?.message || "Vos documents n'ont pas encore été vérifiés."
+
+      if (router.currentRoute.value.path !== '/documents/pending') {
+        router.replace({
+          path: '/documents/pending',
+          query: { message },
+        })
+      }
     }
     return Promise.reject(error)
   }

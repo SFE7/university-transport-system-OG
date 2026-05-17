@@ -1,4 +1,4 @@
-import type { Membre } from './index'
+import type { Membre, Trajet } from './index'
 
 export interface DocumentSoumis {
   id: number
@@ -8,15 +8,29 @@ export interface DocumentSoumis {
   url: string | null
   status: 'en_attente' | 'approuve' | 'rejete'
   rejection_reason: string | null
+  reviewed_by: number | null
   reviewed_at: string | null
+  created_at: string
   membre?: Membre
+}
+
+export interface DocumentStatusResponse {
+  role: Membre['role']
+  account_type: Membre['account_type']
+  has_verified_documents: boolean
+  required_documents: DocumentSoumis['type'][]
+  documents: DocumentSoumis[]
 }
 
 export interface Signalement {
   id: number
-  reporter: Membre
-  reported: Membre
+  membre: Membre
+  conducteur: Membre
+  trajet: Trajet | null
+  reporter?: Membre
+  reported?: Membre
   reason: string
+  description: string | null
   status: 'en_attente' | 'traite' | 'archive'
   created_at: string
 }

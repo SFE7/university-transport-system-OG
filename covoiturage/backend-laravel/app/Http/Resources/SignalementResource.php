@@ -13,9 +13,13 @@ class SignalementResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'reporter' => new MembreResource($this->whenLoaded('reporter')),
-            'reported' => new MembreResource($this->whenLoaded('reported')),
+            'membre' => new MembreResource($this->whenLoaded('membre')),
+            'conducteur' => new MembreResource($this->whenLoaded('conducteur')),
+            'trajet' => new TrajetResource($this->whenLoaded('trajet')),
+            'reporter' => new MembreResource($this->whenLoaded('membre')),
+            'reported' => new MembreResource($this->whenLoaded('conducteur')),
             'reason' => $this->reason,
+            'description' => $this->description,
             'status' => $this->status,
             'created_at' => $this->created_at,
         ];

@@ -73,6 +73,15 @@ const trendGlyph = (trend: 'up' | 'down' | 'flat') => {
   return '→'
 }
 
+const formatSignalementDate = (value: string | null | undefined) => {
+  if (!value) return 'Date inconnue'
+
+  return new Intl.DateTimeFormat('fr-FR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
 const chartRoleLabels: Record<string, string> = {
   membre: 'Membres',
   conducteur: 'Conducteurs',
@@ -978,7 +987,16 @@ onMounted(async () => {
       <article v-for="sig in signalementStore.list" :key="sig.id" class="row">
         <div>
           <h4>Signalement #{{ sig.id }}</h4>
-          <p>{{ sig.reason }}</p>
+          <p><strong>Conducteur:</strong> {{ sig.conducteur?.name || sig.reported?.name || 'Conducteur inconnu' }}</p>
+          <p><strong>Membre:</strong> {{ sig.membre?.name || sig.reporter?.name || 'Membre inconnu' }}</p>
+          <p v-if="sig.trajet">
+            <strong>Trajet:</strong>
+            {{ sig.trajet.departure_point }} → {{ sig.trajet.arrival_point }}
+          </p>
+          <p><strong>Raison:</strong> {{ sig.reason }}</p>
+          <p v-if="sig.description"><strong>Description:</strong> {{ sig.description }}</p>
+          <small>Date: {{ formatSignalementDate(sig.created_at) }}</small>
+          <br />
           <small>Status: <strong>{{ sig.status }}</strong></small>
         </div>
         <div class="row-actions">
