@@ -6,12 +6,20 @@ namespace App\Services;
 
 use App\Models\DocumentSoumis;
 use App\Models\Membre;
+use App\Services\Contracts\DocumentServiceInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
-class DocumentService
+class DocumentService implements DocumentServiceInterface
 {
+    public function getOne(int $id): DocumentSoumis
+    {
+        return DocumentSoumis::findOrFail($id);
+    }
+
     public function getPending(): Collection
     {
         return DocumentSoumis::with('membre')->where('status', 'en_attente')->get();
@@ -40,6 +48,21 @@ class DocumentService
 
     public function submit(Membre $membre, array $files): Collection
     {
+        Validator::make($files, [
+            'carte_etudiante' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'carte_identite' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'permis_conduire' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'carte_grise' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+        ])->validate();
+
+        $uploadedFiles = array_filter($files, static fn ($file): bool => $file instanceof UploadedFile);
+
+        if ($uploadedFiles === []) {
+            throw ValidationException::withMessages([
+                'documents' => 'Au moins un document doit être soumis.',
+            ]);
+        }
+
         foreach ($this->requiredDocumentTypes($membre) as $type) {
             $file = $files[$type] ?? null;
 
@@ -110,10 +133,14 @@ class DocumentService
         }
     }
 
-    public function reject(DocumentSoumis $doc, Membre $admin, string $reason): DocumentSoumis
+    public function reject(DocumentSoumis $doc, Membre $admin, array $data): DocumentSoumis
     {
+        $validated = Validator::make($data, [
+            'reason' => 'required|string|max:1000',
+        ])->validate();
+
         $doc->status = 'rejete';
-        $doc->rejection_reason = $reason;
+        $doc->rejection_reason = (string) $validated['reason'];
         $doc->reviewed_by = $admin->id;
         $doc->reviewed_at = now();
         $doc->save();
@@ -122,7 +149,7 @@ class DocumentService
         if (method_exists($membre, 'notifications')) {
             $membre->notifications()->create([
                 'type' => 'document_rejected',
-                'data' => json_encode(['message' => "Votre document a été rejeté: $reason"]),
+                'data' => json_encode(['message' => "Votre document a été rejeté: {$validated['reason']}"]),
             ]);
         }
 

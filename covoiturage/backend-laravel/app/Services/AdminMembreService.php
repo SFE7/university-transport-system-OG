@@ -4,9 +4,10 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Membre;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Services\Contracts\AdminMembreServiceInterface;
+use Illuminate\Pagination\LengthAwarePaginator;
 
-class AdminMembreService
+class AdminMembreService implements AdminMembreServiceInterface
 {
     public function getAll(): LengthAwarePaginator
     {

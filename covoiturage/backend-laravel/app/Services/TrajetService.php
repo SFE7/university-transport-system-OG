@@ -6,11 +6,12 @@ namespace App\Services;
 
 use App\Models\Membre;
 use App\Models\Trajet;
+use App\Services\Contracts\TrajetServiceInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 
-class TrajetService
+class TrajetService implements TrajetServiceInterface
 {
     public function autoCompleteExpired(): void
     {

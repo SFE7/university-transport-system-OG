@@ -68,8 +68,6 @@ import type { DocumentSoumis } from '@/types/admin'
 const store = useDocumentStore()
 const selectedDoc = ref<DocumentSoumis | null>(null)
 
-watch(selectedDoc, (val) => console.log('selectedDoc changed:', val))
-
 onMounted(async () => {
   await store.fetchPending()
 })
@@ -101,7 +99,6 @@ const documentImageUrl = (doc: DocumentSoumis | null) => {
 }
 
 const setSelectedDoc = (doc: DocumentSoumis) => {
-  console.log('selectedDoc set:', doc)
   selectedDoc.value = doc
 }
 

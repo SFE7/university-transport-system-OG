@@ -6,7 +6,9 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreArretBusRequest;
-use App\Models\ArretBus;
+use App\Http\Requests\UpdateArretBusRequest;
+use App\Http\Resources\ArretBusResource;
+use App\Services\Contracts\ArretBusServiceInterface;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 
@@ -14,25 +16,29 @@ class ArretBusController extends Controller
 {
     use ApiResponseTrait;
 
+    public function __construct(
+        private readonly ArretBusServiceInterface $service
+    ) {}
+
     public function store(StoreArretBusRequest $request): JsonResponse
     {
-        $arret = ArretBus::create($request->validated());
+        $arret = $this->service->create($request->validated());
 
-        return $this->success($arret, 'Arret cree', 201);
+        return $this->success(new ArretBusResource($arret), 'Arret cree', 201);
     }
 
-    public function update(StoreArretBusRequest $request, int $id): JsonResponse
+    public function update(UpdateArretBusRequest $request, int $id): JsonResponse
     {
-        $arret = ArretBus::findOrFail($id);
-        $arret->update($request->validated());
+        $arret = $this->service->getOne($id);
+        $arret = $this->service->update($arret, $request->validated());
 
-        return $this->success($arret, 'Arret mis a jour');
+        return $this->success(new ArretBusResource($arret), 'Arret mis a jour');
     }
 
     public function destroy(int $id): JsonResponse
     {
-        $arret = ArretBus::findOrFail($id);
-        $arret->delete();
+        $arret = $this->service->getOne($id);
+        $this->service->delete($arret);
 
         return $this->success(null, 'Arret supprime');
     }

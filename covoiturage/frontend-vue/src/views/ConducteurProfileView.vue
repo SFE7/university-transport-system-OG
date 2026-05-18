@@ -1,17 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import { useAvisStore } from '@/stores/avisStore'
-import { useAuthStore } from '@/stores/authStore'
-import { useReservationStore } from '@/stores/reservationStore'
-
-const route = useRoute()
-const avisStore = useAvisStore()
-<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAvisStore } from '@/stores/avisStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useReservationStore } from '@/stores/reservationStore'
 import type { Avis } from '@/types'
 
 const route = useRoute()
@@ -179,8 +171,8 @@ onMounted(() => {
     </section>
   </section>
 </template>
-}
 
+<style scoped>
 @media (max-width: 640px) {
   .row-actions {
     flex-direction: column;

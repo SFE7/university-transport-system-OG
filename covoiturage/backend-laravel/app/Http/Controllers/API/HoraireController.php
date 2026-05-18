@@ -6,7 +6,9 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreHoraireBusRequest;
-use App\Models\HoraireBus;
+use App\Http\Requests\UpdateHoraireBusRequest;
+use App\Http\Resources\HoraireBusResource;
+use App\Services\Contracts\HoraireBusServiceInterface;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 
@@ -14,37 +16,36 @@ class HoraireController extends Controller
 {
     use ApiResponseTrait;
 
+    public function __construct(
+        private readonly HoraireBusServiceInterface $service
+    ) {}
+
     public function index(): JsonResponse
     {
-        $horaires = HoraireBus::query()
-            ->with(['chauffeur:id,name', 'ligne:id,name'])
-            ->orderByDesc('created_at')
-            ->get();
+        $horaires = $this->service->getAll();
 
-        return $this->success($horaires);
+        return $this->success(HoraireBusResource::collection($horaires)->response()->getData(true));
     }
 
     public function store(StoreHoraireBusRequest $request): JsonResponse
     {
-        $horaire = HoraireBus::create($request->validated())
-            ->load(['chauffeur:id,name', 'ligne:id,name']);
+        $horaire = $this->service->create($request->validated());
 
-        return $this->success($horaire, 'Horaire cree', 201);
+        return $this->success(new HoraireBusResource($horaire), 'Horaire cree', 201);
     }
 
-    public function update(StoreHoraireBusRequest $request, int $id): JsonResponse
+    public function update(UpdateHoraireBusRequest $request, int $id): JsonResponse
     {
-        $horaire = HoraireBus::findOrFail($id);
-        $horaire->update($request->validated());
-        $horaire->load(['chauffeur:id,name', 'ligne:id,name']);
+        $horaire = $this->service->getOne($id);
+        $horaire = $this->service->update($horaire, $request->validated());
 
-        return $this->success($horaire, 'Horaire mis a jour');
+        return $this->success(new HoraireBusResource($horaire), 'Horaire mis a jour');
     }
 
     public function destroy(int $id): JsonResponse
     {
-        $horaire = HoraireBus::findOrFail($id);
-        $horaire->delete();
+        $horaire = $this->service->getOne($id);
+        $this->service->delete($horaire);
 
         return $this->success(null, 'Horaire supprime');
     }

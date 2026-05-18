@@ -6,8 +6,9 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTrajetRequest;
+use App\Http\Requests\UpdateTrajetRequest;
 use App\Http\Resources\TrajetResource;
-use App\Services\TrajetService;
+use App\Services\Contracts\TrajetServiceInterface;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class TrajetController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly TrajetService $service
+        private readonly TrajetServiceInterface $service
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -42,7 +43,7 @@ class TrajetController extends Controller
         return $this->success(new TrajetResource($trajet));
     }
 
-    public function update(StoreTrajetRequest $request, int $id): JsonResponse
+    public function update(UpdateTrajetRequest $request, int $id): JsonResponse
     {
         $trajet = $this->service->getOne($id);
         $trajet = $this->service->update($trajet, $request->validated(), $request->user());

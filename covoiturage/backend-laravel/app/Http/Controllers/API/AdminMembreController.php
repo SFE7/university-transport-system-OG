@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateAdminMembreRequest;
 use App\Http\Resources\MembreResource;
-use App\Models\Membre;
-use App\Services\AuthService;
-use App\Services\AdminMembreService;
+use App\Services\Contracts\AuthServiceInterface;
+use App\Services\Contracts\AdminMembreServiceInterface;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,34 +18,30 @@ class AdminMembreController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly AdminMembreService $service
-        , private readonly AuthService $authService
+        private readonly AdminMembreServiceInterface $service
+        , private readonly AuthServiceInterface $authService
     ) {}
 
     public function index(Request $request): JsonResponse
     {
         $membres = $this->service->getAll();
 
-        return $this->success($membres);
+        return $this->success(MembreResource::collection($membres)->response()->getData(true));
     }
 
     public function show(int $id): JsonResponse
     {
         $membre = $this->service->getOne($id);
 
-        return $this->success($membre);
+        return $this->success(new MembreResource($membre));
     }
 
-    public function updateRole(Request $request, int $id): JsonResponse
+    public function updateRole(UpdateAdminMembreRequest $request, int $id): JsonResponse
     {
-        $request->validate([
-            'role' => 'required|in:membre,conducteur,chauffeur_bus,admin',
-        ]);
-
         $membre = $this->service->getOne($id);
-        $membre = $this->service->updateRole($membre, (string) $request->role);
+        $membre = $this->service->updateRole($membre, (string) $request->validated()['role']);
 
-        return $this->success($membre, 'Role mis a jour');
+        return $this->success(new MembreResource($membre), 'Role mis a jour');
     }
 
     public function destroy(int $id): JsonResponse

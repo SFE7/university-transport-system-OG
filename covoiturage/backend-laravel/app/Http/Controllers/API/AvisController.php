@@ -6,8 +6,9 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAvisRequest;
+use App\Http\Requests\UpdateAvisRequest;
 use App\Http\Resources\AvisResource;
-use App\Services\AvisService;
+use App\Services\Contracts\AvisServiceInterface;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 
@@ -16,14 +17,20 @@ class AvisController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly AvisService $service
+        private readonly AvisServiceInterface $service
     ) {}
 
-    public function index(int $membreId): JsonResponse
+    public function index(?int $membreId = null): JsonResponse
     {
-        $avis = $this->service->getByConducteur($membreId);
+        if ($membreId) {
+            $avis = $this->service->getByConducteur($membreId);
+            $payload = AvisResource::collection($avis)->response()->getData(true);
+        } else {
+            $avis = $this->service->getAll();
+            $payload = AvisResource::collection($avis)->response()->getData(true);
+        }
 
-        return $this->success(AvisResource::collection($avis)->response()->getData(true));
+        return $this->success($payload);
     }
 
     public function store(StoreAvisRequest $request): JsonResponse
@@ -33,34 +40,18 @@ class AvisController extends Controller
         return $this->success(new AvisResource($avis), 'Avis créé', 201);
     }
 
-    public function update(StoreAvisRequest $request, int $id): JsonResponse
+    public function update(UpdateAvisRequest $request, int $id): JsonResponse
     {
-        $avis = \App\Models\Avis::findOrFail($id);
-
-        // only reviewer can update
-        if ($avis->reviewer_id !== auth()->id()) {
-            abort(403);
-        }
-
-        $validated = $request->validated();
-
-        $avis->rating = $validated['rating'];
-        $avis->comment = $validated['comment'] ?? null;
-        $avis->save();
+        $avis = $this->service->getOne($id);
+        $avis = $this->service->update($avis, $request->validated(), $request->user());
 
         return $this->success(new AvisResource($avis), 'Avis mis a jour');
     }
 
     public function destroy(int $id): JsonResponse
     {
-        $avis = \App\Models\Avis::findOrFail($id);
-
-        // only reviewer can delete
-        if ($avis->reviewer_id !== auth()->id()) {
-            abort(403);
-        }
-
-        $avis->delete();
+        $avis = $this->service->getOne($id);
+        $this->service->delete($avis, auth()->user());
 
         return $this->success(null, 'Avis supprime');
     }

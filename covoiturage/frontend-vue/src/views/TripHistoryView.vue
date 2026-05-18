@@ -289,11 +289,8 @@ const getStatusClass = (status: string) => {
 .stars {
   color: #ffd166;
   font-size: 18px;
-  font-weight: 300; /* thinner stars */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-weight: 700;
   min-width: 90px;
-  letter-spacing: 1px;
 }
 
 .avis-comment {

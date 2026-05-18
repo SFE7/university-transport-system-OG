@@ -121,10 +121,7 @@ onMounted(async () => {
   // fetch lignes with arrets and next_departure
   try {
     const response = await apiClient.get('/lignes')
-    console.log('lignes response:', response.data)
     const lignes = response.data.data
-    console.log('lignes fetched:', lignes)
-    console.log('first ligne arrets:', lignes[0]?.arrets)
 
     const bounds: L.LatLngExpression[] = []
 

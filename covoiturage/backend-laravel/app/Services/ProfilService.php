@@ -6,8 +6,9 @@ namespace App\Services;
 
 use App\Models\Membre;
 use App\Models\Vehicule;
+use App\Services\Contracts\ProfilServiceInterface;
 
-class ProfilService
+class ProfilService implements ProfilServiceInterface
 {
     public function getProfile(int $membreId): ?Membre
     {
@@ -23,6 +24,8 @@ class ProfilService
 
     public function updateVehicule(Membre $conducteur, array $data): Vehicule
     {
+        abort_if($conducteur->role !== 'conducteur', 403, 'Accès refusé');
+
         return Vehicule::updateOrCreate(
             ['conducteur_id' => $conducteur->id],
             [

@@ -6,9 +6,9 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSignalementRequest;
+use App\Http\Requests\UpdateSignalementRequest;
 use App\Http\Resources\SignalementResource;
-use App\Models\Signalement;
-use App\Services\SignalementService;
+use App\Services\Contracts\SignalementServiceInterface;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +17,7 @@ class SignalementController extends Controller
 {
     use ApiResponseTrait;
 
-    public function __construct(private readonly SignalementService $service) {}
+    public function __construct(private readonly SignalementServiceInterface $service) {}
 
     public function store(StoreSignalementRequest $request): JsonResponse
     {
@@ -31,14 +31,12 @@ class SignalementController extends Controller
         $filters = $request->only('status');
         $list = $this->service->getAll($filters);
 
-        return $this->success(SignalementResource::collection($list));
+        return $this->success(SignalementResource::collection($list)->response()->getData(true));
     }
 
-    public function updateStatus(Request $request, int $id): JsonResponse
+    public function updateStatus(UpdateSignalementRequest $request, int $id): JsonResponse
     {
-        $request->validate(['status' => 'required|in:en_attente,traite,archive']);
-
-        $signalement = Signalement::findOrFail($id);
+        $signalement = $this->service->getOne($id);
         $signalement = $this->service->updateStatus($signalement, (string) $request->status);
 
         return $this->success(new SignalementResource($signalement), 'Statut mis à jour');
@@ -46,7 +44,7 @@ class SignalementController extends Controller
 
     public function destroy(int $id): JsonResponse
     {
-        $signalement = Signalement::findOrFail($id);
+        $signalement = $this->service->getOne($id);
         $this->service->delete($signalement);
 
         return $this->success(null, 'Signalement supprimé');

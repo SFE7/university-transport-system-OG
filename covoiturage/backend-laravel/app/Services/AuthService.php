@@ -8,14 +8,27 @@ use App\Mail\ChauffeurCredentialsMail;
 use App\Models\DocumentSoumis;
 use App\Models\Membre;
 use App\Models\Notification;
+use App\Services\Contracts\AuthServiceInterface;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
-class AuthService
+class AuthService implements AuthServiceInterface
 {
+    public function registerBasic(array $data): Membre
+    {
+        $membre = Membre::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'role' => $data['role'],
+        ]);
+
+        return $membre->fresh();
+    }
+
     public function register(array $data, string $type): Membre
     {
         $role = $type === 'conducteur' ? 'conducteur' : 'membre';
@@ -73,6 +86,17 @@ class AuthService
         }
 
         return $membre->fresh();
+    }
+
+    public function authenticate(array $data): ?Membre
+    {
+        $membre = Membre::where('email', $data['email'])->first();
+
+        if (! $membre || ! Hash::check($data['password'], $membre->password)) {
+            return null;
+        }
+
+        return $membre;
     }
 
     public function changePassword(Membre $membre, array $data): void

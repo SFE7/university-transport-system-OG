@@ -10,9 +10,10 @@ use App\Models\BusPosition;
 use App\Models\HoraireBus;
 use App\Models\Membre;
 use App\Models\Reservation;
+use App\Services\Contracts\BusPositionServiceInterface;
 use Illuminate\Support\Collection;
 
-class BusPositionService
+class BusPositionService implements BusPositionServiceInterface
 {
     public function updatePosition(Membre $chauffeur, array $data): BusPosition
     {

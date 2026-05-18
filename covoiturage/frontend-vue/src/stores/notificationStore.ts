@@ -9,13 +9,48 @@ export const useNotificationStore = defineStore('notifications', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
+  const extractNotificationArray = (payload: unknown): Notification[] => {
+    if (Array.isArray(payload)) {
+      return payload as Notification[]
+    }
+
+    if (payload && typeof payload === 'object') {
+      const value = payload as { data?: unknown; notifications?: unknown }
+
+      if (Array.isArray(value.data)) {
+        return value.data as Notification[]
+      }
+
+      if (Array.isArray(value.notifications)) {
+        return value.notifications as Notification[]
+      }
+    }
+
+    return []
+  }
+
+  const extractNotificationItem = (payload: unknown): Notification | null => {
+    if (payload && typeof payload === 'object') {
+      const value = payload as { data?: unknown }
+
+      if (value.data && typeof value.data === 'object' && !Array.isArray(value.data)) {
+        return value.data as Notification
+      }
+
+      return payload as Notification
+    }
+
+    return null
+  }
+
   const fetchMyNotifications = async () => {
     isLoading.value = true
     error.value = null
     try {
       const response = await notificationService.getMyNotifications()
-      notifications.value = response.data
-      unreadCount.value = response.data.filter((item) => !item.is_read).length
+      const extractedNotifications = extractNotificationArray(response.data)
+      notifications.value = extractedNotifications
+      unreadCount.value = extractedNotifications.filter((item) => !item.is_read).length
       return response
     } catch (err: any) {
       error.value = err?.response?.data?.message || 'Failed to load notifications'
@@ -31,10 +66,11 @@ export const useNotificationStore = defineStore('notifications', () => {
     try {
       const wasUnread = notifications.value.find((item) => item.id === id)?.is_read === false
       const response = await notificationService.markAsRead(id)
+      const updatedNotification = extractNotificationItem(response.data)
       notifications.value = notifications.value.map((item) =>
-        item.id === id ? response.data : item
+        item.id === id && updatedNotification ? updatedNotification : item
       )
-      if (wasUnread && response.data.is_read) {
+      if (wasUnread && updatedNotification?.is_read) {
         unreadCount.value = Math.max(0, unreadCount.value - 1)
       } else {
         unreadCount.value = notifications.value.filter((item) => !item.is_read).length

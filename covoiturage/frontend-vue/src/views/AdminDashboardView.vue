@@ -19,6 +19,20 @@ type AdminHoraire = HoraireBus & {
   } | null
 }
 
+type Trend = 'up' | 'down' | 'flat'
+
+type StatCard = {
+  key: string
+  label: string
+  value: number
+  detail: string
+  icon: string
+  trend: Trend
+  trendLabel: string
+  accent: string
+  gradient: string
+}
+
 const route = useRoute()
 const router = useRouter()
 const ligneStore = useLigneStore()
@@ -47,8 +61,6 @@ const membreError = ref<string | null>(null)
 const chauffeurError = ref<string | null>(null)
 const chauffeurForm = reactive({ name: '', email: '', password: '', password_confirmation: '' })
 
-watch(membres, (val) => console.log('membres changed:', val), { immediate: true })
-
 const rejectReason = ref('')
 const rejectingDocId = ref<number | null>(null)
 const newArretForms = reactive<Record<number, { name: string; latitude: string; longitude: string }>>({})
@@ -67,7 +79,7 @@ const formatCount = (value: number) => numberFormatter.format(value)
 
 const formatPercent = (value: number) => `${Math.round(value)}%`
 
-const trendGlyph = (trend: 'up' | 'down' | 'flat') => {
+const trendGlyph = (trend: Trend) => {
   if (trend === 'up') return '↗'
   if (trend === 'down') return '↘'
   return '→'
@@ -96,7 +108,7 @@ const chartRoleColors: Record<string, string> = {
   admin: '#f7c85f',
 }
 
-const statsCards = computed(() => {
+const statsCards = computed<StatCard[]>(() => {
   const current = stats.value
   const totalUsers = current?.membres?.total ?? 0
   const activeUsers = current?.membres?.actifs ?? 0
@@ -345,15 +357,12 @@ const loadHoraireTabData = async () => {
 
 const loadAll = async () => {
   try {
-    console.log('loadAll called')
     await Promise.all([ligneStore.fetchAll(), incidentStore.fetchAll()])
     const [membResp, chauffeurResp] = await Promise.all([
       adminService.getMembres(),
       adminService.getChauffeurs(),
     ])
-    console.log('membResp raw:', membResp)
     membres.value = membResp.data
-    console.log('membres.value after assign:', membres.value)
     chauffeurs.value = chauffeurResp.data
   } catch (err) {
     console.error('Error loading admin data:', err)

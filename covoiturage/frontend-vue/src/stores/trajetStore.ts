@@ -77,8 +77,6 @@ export const useTrajetStore = defineStore('trajets', () => {
         carPhotoFile: payload.carPhotoFile ?? carPhotoFile.value,
       }
 
-      console.log('[trajetStore.create] forwarding payload', requestPayload)
-
       const response = await trajetService.create(requestPayload)
       trajets.value.unshift(response.data)
       return response

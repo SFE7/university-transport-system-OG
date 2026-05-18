@@ -28,6 +28,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/trajets',        [TrajetController::class, 'index']);
     Route::get('/trajets/{id}',   [TrajetController::class, 'show'])->whereNumber('id');
     Route::get('/membres/{id}/avis', [AvisController::class, 'index'])->whereNumber('id');
+    Route::get('/avis', [AvisController::class, 'index']);
 
     // Protected routes
     Route::middleware(['auth:sanctum', 'ensure.documents.verified'])->group(function () {
