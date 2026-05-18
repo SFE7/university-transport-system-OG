@@ -6,16 +6,10 @@ namespace App\Services;
 
 use App\Models\Membre;
 use App\Models\Notification;
-use App\Services\Contracts\NotificationServiceInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-class NotificationService implements NotificationServiceInterface
+class NotificationService
 {
-    public function getOne(int $id): Notification
-    {
-        return Notification::findOrFail($id);
-    }
-
     public function getMyNotifications(Membre $actor): LengthAwarePaginator
     {
         return Notification::where('membre_id', $actor->id)

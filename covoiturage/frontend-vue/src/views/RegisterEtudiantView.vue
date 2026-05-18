@@ -87,6 +87,11 @@ const submit = async () => {
     if (phone.value) fd.append('phone', phone.value)
     fd.append('carte_etudiante', carteEtudiante.value)
 
+    console.log('[register] FormData entries:')
+    for (const [key, value] of fd.entries()) {
+      console.log(key, typeof value === 'object' ? `FILE: ${(value as File).name} (${(value as File).size} bytes)` : value)
+    }
+
     await auth.registerEtudiant(fd)
     router.push('/trajets')
   } catch (err: any) {

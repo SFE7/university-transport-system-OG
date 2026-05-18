@@ -5,12 +5,10 @@ namespace App\Services;
 
 use App\Models\HoraireBus;
 use App\Models\LigneBus;
-use App\Services\Contracts\LigneBusServiceInterface;
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
-class LigneBusService implements LigneBusServiceInterface
+class LigneBusService
 {
     public function getAll(): Collection
     {
@@ -71,55 +69,13 @@ class LigneBusService implements LigneBusServiceInterface
 
     public function create(array $data): LigneBus
     {
-        $data['color'] = ($data['color'] ?? '') === '' ? '#00c853' : ($data['color'] ?? '#00c853');
-
-        $arrets = $data['arrets'] ?? null;
-        unset($data['arrets']);
-
-        return DB::transaction(function () use ($data, $arrets): LigneBus {
-            $ligne = LigneBus::create($data);
-
-            if (is_array($arrets) && count($arrets)) {
-                $ligne->arrets()->createMany($arrets);
-                $ligne->load(['arrets' => function ($q) {
-                    $q->orderBy('order');
-                }]);
-            }
-
-            $ligne = $ligne->fresh(['arrets', 'horaires']);
-            $ligne->next_departure = $this->getNextDeparture($ligne);
-
-            return $ligne;
-        });
+        return LigneBus::create($data);
     }
 
     public function update(LigneBus $ligne, array $data): LigneBus
     {
-        if (array_key_exists('color', $data) && $data['color'] === '') {
-            $data['color'] = '#00c853';
-        }
-
-        $arrets = $data['arrets'] ?? null;
-        unset($data['arrets']);
-
-        return DB::transaction(function () use ($ligne, $data, $arrets): LigneBus {
-            $ligne->update($data);
-
-            if (is_array($arrets)) {
-                $ligne->arrets()->delete();
-                if (count($arrets)) {
-                    $ligne->arrets()->createMany($arrets);
-                }
-                $ligne->load(['arrets' => function ($q) {
-                    $q->orderBy('order');
-                }]);
-            }
-
-            $ligne = $ligne->fresh(['arrets', 'horaires']);
-            $ligne->next_departure = $this->getNextDeparture($ligne);
-
-            return $ligne;
-        });
+        $ligne->update($data);
+        return $ligne;
     }
 
     public function toggleActive(LigneBus $ligne): LigneBus

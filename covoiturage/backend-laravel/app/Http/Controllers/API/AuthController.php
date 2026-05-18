@@ -6,14 +6,13 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
-use App\Http\Requests\RegisterMembreRequest;
 use App\Http\Requests\RegisterConducteurRequest;
 use App\Http\Requests\RegisterEtudiantRequest;
 use App\Http\Requests\RegisterProfessionnelRequest;
 use App\Http\Requests\UpdatePasswordRequest;
 use App\Http\Resources\MembreResource;
 use App\Models\Membre;
-use App\Services\Contracts\AuthServiceInterface;
+use App\Services\AuthService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,12 +26,24 @@ class AuthController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly AuthServiceInterface $authService
+        private readonly AuthService $authService
     ) {}
 
-    public function register(RegisterMembreRequest $request): JsonResponse
+    public function register(Request $request): JsonResponse
     {
-        $membre = $this->authService->registerBasic($request->validated());
+        $validated = $request->validate([
+            'name' => 'required',
+            'email' => 'required|email|unique:membres',
+            'password' => 'required|min:8|confirmed',
+            'role' => 'required|in:membre,conducteur',
+        ]);
+
+        $membre = Membre::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'],
+        ]);
 
         $token = $membre->createToken('api_token')->plainTextToken;
 
@@ -105,9 +116,9 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        $membre = $this->authService->authenticate($validated);
+        $membre = Membre::where('email', $validated['email'])->first();
 
-        if (! $membre) {
+        if (!$membre || !Hash::check($validated['password'], $membre->password)) {
             return $this->error('Invalid credentials', 401);
         }
 
@@ -128,7 +139,7 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        return $this->success(new MembreResource($request->user()));
+        return response()->json($request->user());
     }
 
     private function issueToken(Membre $membre): string

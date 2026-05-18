@@ -8,31 +8,12 @@ export const useStatistiquesStore = defineStore('statistiques', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
-  const extractStats = (payload: unknown): AdminStats | null => {
-    if (!payload || typeof payload !== 'object') {
-      return null
-    }
-
-    const value = payload as { data?: unknown }
-
-    if (value.data && typeof value.data === 'object' && !Array.isArray(value.data)) {
-      return value.data as AdminStats
-    }
-
-    return payload as AdminStats
-  }
-
   const fetchStats = async () => {
     isLoading.value = true
-    error.value = null
     try {
       const res = await statistiquesService.fetchStats()
-      stats.value = extractStats(res.data)
+      stats.value = res.data
       return res
-    } catch (err: any) {
-      error.value = err?.response?.data?.message || 'Failed to load statistics'
-      stats.value = null
-      throw err
     } finally {
       isLoading.value = false
     }

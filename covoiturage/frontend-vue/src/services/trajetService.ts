@@ -53,6 +53,7 @@ const create = async (payload: CreateTrajetPayload): Promise<ApiResponse<Trajet>
     requestBody = formData
   }
 
+  console.log('[trajetService.create] request body', requestBody)
 
   const response = await apiClient.post<ApiResponse<Trajet>>('/trajets', requestBody)
   return response.data

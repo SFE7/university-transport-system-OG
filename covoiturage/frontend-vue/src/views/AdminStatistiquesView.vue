@@ -5,9 +5,7 @@
       <p class="page-subtitle">Vue d'ensemble des indicateurs clés de la plateforme.</p>
     </header>
 
-    <div v-if="isLoading" class="empty-state">Chargement...</div>
-    <div v-else-if="error" class="empty-state error-state">{{ error }}</div>
-    <div v-else-if="!stats" class="empty-state">Aucune statistique disponible.</div>
+    <div v-if="!stats" class="empty-state">Chargement...</div>
     <div v-else class="stats-grid">
       <div class="stat-card">
         <div class="stat-icon">👥</div>
@@ -33,15 +31,12 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { storeToRefs } from 'pinia'
 import { useStatistiquesStore } from '@/stores/statistiquesStore'
 
 const store = useStatistiquesStore()
-const { stats, isLoading, error } = storeToRefs(store)
+onMounted(() => store.fetchStats())
 
-onMounted(() => {
-  store.fetchStats()
-})
+const stats = store.stats
 </script>
 
 <style scoped>
@@ -112,14 +107,6 @@ onMounted(() => {
   text-align: center;
   padding: 60px 0;
   font-size: 15px;
-}
-
-.empty-state.error-state {
-  color: #ffb3b3;
-  padding: 40px 24px;
-  background: rgba(255, 107, 107, 0.1);
-  border: 1px solid rgba(255, 107, 107, 0.2);
-  border-radius: 20px;
 }
 
 @media (max-width: 1024px) {

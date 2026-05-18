@@ -6,7 +6,8 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\NotificationResource;
-use App\Services\Contracts\NotificationServiceInterface;
+use App\Models\Notification;
+use App\Services\NotificationService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 
@@ -15,7 +16,7 @@ class NotificationController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly NotificationServiceInterface $service
+        private readonly NotificationService $service
     ) {}
 
     public function index(): JsonResponse
@@ -27,7 +28,7 @@ class NotificationController extends Controller
 
     public function markAsRead(int $id): JsonResponse
     {
-        $notification = $this->service->getOne($id);
+        $notification = Notification::findOrFail($id);
         $notification = $this->service->markAsRead($notification, auth()->user());
 
         return $this->success(new NotificationResource($notification), 'Notification marquée comme lue');

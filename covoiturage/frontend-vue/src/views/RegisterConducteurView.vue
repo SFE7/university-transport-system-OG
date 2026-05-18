@@ -104,6 +104,11 @@ const submit = async () => {
     fd.append('permis_conduire', permisConduire.value)
     fd.append('carte_grise', carteGrise.value)
 
+    console.log('[register] FormData entries:')
+    for (const [key, value] of fd.entries()) {
+      console.log(key, value)
+    }
+
     await auth.registerConducteur(fd)
     router.push('/trajets')
   } catch (err: any) {

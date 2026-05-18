@@ -7,7 +7,8 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreReservationRequest;
 use App\Http\Resources\ReservationResource;
-use App\Services\Contracts\ReservationServiceInterface;
+use App\Models\Reservation;
+use App\Services\ReservationService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class ReservationController extends Controller
     use ApiResponseTrait;
 
     public function __construct(
-        private readonly ReservationServiceInterface $service
+        private readonly ReservationService $service
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -43,14 +44,14 @@ class ReservationController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $reservation = $this->service->getOne($id);
+        $reservation = Reservation::with(['trajet'])->findOrFail($id);
 
         return $this->success(new ReservationResource($reservation));
     }
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $reservation = $this->service->getOne($id);
+        $reservation = Reservation::findOrFail($id);
         $this->service->cancel($reservation, $request->user());
 
         return $this->success(null, 'Réservation annulée');
@@ -58,7 +59,7 @@ class ReservationController extends Controller
 
     public function accept(Request $request, int $id): JsonResponse
     {
-        $reservation = $this->service->getOne($id);
+        $reservation = Reservation::with(['trajet'])->findOrFail($id);
         $reservation = $this->service->accept($reservation, $request->user());
 
         return $this->success(new ReservationResource($reservation), 'Réservation acceptée');
@@ -66,7 +67,7 @@ class ReservationController extends Controller
 
     public function refuse(Request $request, int $id): JsonResponse
     {
-        $reservation = $this->service->getOne($id);
+        $reservation = Reservation::with(['trajet'])->findOrFail($id);
         $reservation = $this->service->refuse($reservation, $request->user());
 
         return $this->success(new ReservationResource($reservation), 'Réservation refusée');

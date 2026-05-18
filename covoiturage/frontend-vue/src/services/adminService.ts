@@ -11,6 +11,8 @@ type HorairePayload = {
 
 const getMembres = async (): Promise<PaginatedResponse<Membre>> => {
   const response = await apiClient.get('/admin/membres')
+  console.log('getMembres raw response:', response)
+  console.log('getMembres response.data:', response.data)
   // API returns: { data: { current_page, data: [...], ... }, message, status }
   const payload = response.data as ApiResponse<any>
   const paginated = payload.data || {}

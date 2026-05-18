@@ -8,16 +8,10 @@ use App\Models\Membre;
 use App\Models\Notification;
 use App\Models\Reservation;
 use App\Models\Trajet;
-use App\Services\Contracts\ReservationServiceInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-class ReservationService implements ReservationServiceInterface
+class ReservationService
 {
-    public function getOne(int $id): Reservation
-    {
-        return Reservation::with(['trajet'])->findOrFail($id);
-    }
-
     public function getMyReservations(Membre $actor): LengthAwarePaginator
     {
         return Reservation::where('membre_id', $actor->id)

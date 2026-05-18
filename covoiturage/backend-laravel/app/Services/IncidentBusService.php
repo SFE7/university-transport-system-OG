@@ -5,16 +5,10 @@ namespace App\Services;
 
 use App\Models\IncidentBus;
 use App\Models\Membre;
-use App\Services\Contracts\IncidentBusServiceInterface;
 use Illuminate\Support\Collection;
 
-class IncidentBusService implements IncidentBusServiceInterface
+class IncidentBusService
 {
-    public function getOne(int $id): IncidentBus
-    {
-        return IncidentBus::with(['ligne:id,name', 'reporter:id,name'])->findOrFail($id);
-    }
-
     public function getAll(): Collection
     {
         return IncidentBus::orderByDesc('created_at')

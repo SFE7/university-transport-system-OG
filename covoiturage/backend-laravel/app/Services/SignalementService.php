@@ -7,17 +7,11 @@ namespace App\Services;
 use App\Models\Signalement;
 use App\Models\Membre;
 use App\Models\Trajet;
-use App\Services\Contracts\SignalementServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
-class SignalementService implements SignalementServiceInterface
+class SignalementService
 {
-    public function getOne(int $id): Signalement
-    {
-        return Signalement::with(['membre', 'conducteur', 'trajet'])->findOrFail($id);
-    }
-
     public function getAll(array $filters = []): LengthAwarePaginator
     {
         $query = Signalement::with(['membre', 'conducteur', 'trajet'])->orderByDesc('created_at');

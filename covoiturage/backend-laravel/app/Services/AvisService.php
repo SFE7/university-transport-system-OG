@@ -7,26 +7,15 @@ namespace App\Services;
 use App\Models\Avis;
 use App\Models\Membre;
 use App\Models\Reservation;
-use App\Services\Contracts\AvisServiceInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-class AvisService implements AvisServiceInterface
+class AvisService
 {
-    public function getOne(int $id): Avis
-    {
-        return Avis::findOrFail($id);
-    }
-
     public function getByConducteur(int $conducteurId): LengthAwarePaginator
     {
         return Avis::where('conducteur_id', $conducteurId)
             ->with(['reviewer'])
             ->paginate(15);
-    }
-
-    public function getAll(): LengthAwarePaginator
-    {
-        return Avis::with(['reviewer'])->paginate(15);
     }
 
     public function create(array $data, Membre $actor): Avis
@@ -55,23 +44,5 @@ class AvisService implements AvisServiceInterface
             'rating' => $data['rating'],
             'comment' => $data['comment'] ?? null,
         ]);
-    }
-
-    public function update(Avis $avis, array $data, Membre $actor): Avis
-    {
-        abort_if($avis->reviewer_id !== $actor->id, 403);
-
-        $avis->rating = $data['rating'];
-        $avis->comment = $data['comment'] ?? null;
-        $avis->save();
-
-        return $avis;
-    }
-
-    public function delete(Avis $avis, Membre $actor): void
-    {
-        abort_if($avis->reviewer_id !== $actor->id, 403);
-
-        $avis->delete();
     }
 }
