@@ -21,7 +21,7 @@ class TrajetResource extends JsonResource
             'available_seats' => $this->available_seats,
             'car_category' => $this->car_category,
             'car_model' => $this->car_model,
-            'car_photo_url' => $this->car_photo_url,
+            'car_photo_url' => $this->car_photo_url ?? ($this->conducteur?->vehicule?->photo_url ?? null),
             'status' => $this->status,
             'membre_id' => $this->membre_id,
             'conducteur' => new MembreResource($this->whenLoaded('conducteur')),

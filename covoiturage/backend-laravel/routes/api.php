@@ -64,12 +64,12 @@ Route::prefix('v1')->group(function () {
         Route::put('/avis/{id}',            [AvisController::class, 'update'])->whereNumber('id')->middleware('role:membre');
         Route::delete('/avis/{id}',         [AvisController::class, 'destroy'])->whereNumber('id')->middleware('role:membre');
 
-        Route::get('/notifications',               [NotificationController::class, 'index'])->middleware('role:membre,conducteur');
-        Route::patch('/notifications/{id}/read',   [NotificationController::class, 'markAsRead'])->middleware('role:membre,conducteur');
+        Route::get('/notifications',               [NotificationController::class, 'index'])->middleware('role:membre,conducteur,admin');
+        Route::patch('/notifications/{id}/read',   [NotificationController::class, 'markAsRead'])->middleware('role:membre,conducteur,admin');
+        Route::delete('/notifications/{id}',       [NotificationController::class, 'destroy'])->middleware('role:membre,conducteur,admin');
     });
 
     // Sprint 2 public routes
-    Route::get('/bus/positions',             [BusPositionController::class, 'index']);
     Route::get('/lignes',                    [LigneBusController::class, 'index']);
     Route::get('/lignes/{id}',               [LigneBusController::class, 'show'])->whereNumber('id');
     Route::get('/lignes/{id}/arrets',        function ($id) {
@@ -81,6 +81,8 @@ Route::prefix('v1')->group(function () {
 
     // Sprint 2 protected routes
     Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/bus/positions',             [BusPositionController::class, 'index']);
+
         Route::middleware('role:chauffeur_bus')->group(function () {
             Route::patch('/bus/position',        [BusPositionController::class, 'update']);
             Route::patch('/bus/position/stop',   [BusPositionController::class, 'stopSharing']);
@@ -122,6 +124,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/admin/membres/{id}/send-credentials', [AdminMembreController::class, 'sendCredentials'])->whereNumber('id');
             Route::patch('/admin/membres/{id}/suspend',          [AdminMembreController::class, 'toggleSuspend'])->whereNumber('id');
             Route::patch('/admin/membres/{id}/bannir',           [AdminMembreController::class, 'ban'])->whereNumber('id');
+            Route::post('/admin/notifications/broadcast',       [\App\Http\Controllers\API\NotificationController::class, 'broadcast']);
         });
     });
 });

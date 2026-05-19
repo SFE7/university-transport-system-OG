@@ -44,7 +44,8 @@ class ProfilController extends Controller
             return $this->error('Accès refusé', 403);
         }
 
-        $vehicule = $this->service->updateVehicule($user, $request->validated());
+        $photo = $request->file('photo');
+        $vehicule = $this->service->updateVehicule($user, $request->validated(), $photo);
 
         return $this->success($vehicule, 'Véhicule mis à jour');
     }

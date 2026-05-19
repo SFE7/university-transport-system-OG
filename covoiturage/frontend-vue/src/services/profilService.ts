@@ -13,7 +13,15 @@ const updateProfile = async (payload: Partial<Membre>): Promise<ApiResponse<Memb
   return res.data
 }
 
-const updateVehicule = async (payload: { marque: string; modele: string; immatriculation: string; couleur?: string }) : Promise<ApiResponse<Vehicule>> => {
+const updateVehicule = async (payload: FormData | { marque: string; modele: string; immatriculation: string; couleur?: string }) : Promise<ApiResponse<Vehicule>> => {
+  // If payload is FormData, send multipart with method spoofing via POST
+  if (payload instanceof FormData) {
+    const res = await apiClient.post<FormData, any>('/conducteurs/vehicule', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return res.data
+  }
+
   const res = await apiClient.put<ApiResponse<Vehicule>>('/conducteurs/vehicule', payload)
   return res.data
 }

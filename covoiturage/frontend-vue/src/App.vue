@@ -46,6 +46,7 @@ const handleLogout = async () => {
             <RouterLink to="/admin/horaires">Horaires</RouterLink>
             <RouterLink to="/admin/documents">Documents</RouterLink>
             <RouterLink to="/admin/signalements">Signalements</RouterLink>
+            <RouterLink to="/admin/notifications">Notifications</RouterLink>
             <RouterLink to="/admin/membres">Membres</RouterLink>
             <RouterLink to="/admin/statistiques">Statistiques</RouterLink>
           </template>
@@ -121,13 +122,11 @@ body {
   padding: 0;
   font-family: 'Inter', sans-serif;
   color: var(--color-text-light);
-  background: linear-gradient(135deg, #2d5a42 0%, #1b3d2f 40%, #3a6b4a 100%);
-  background-image:
-    radial-gradient(ellipse at 20% 50%, rgba(255, 225, 128, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 20%, rgba(159, 144, 101, 0.1) 0%, transparent 50%),
-    linear-gradient(135deg, #19b060 0%, #20471e 40%, #229348 100%);
-  min-height: 100vh;
+  background-image: url('/campus-bg.jpg');
+  background-size: cover;
+  background-position: center;
   background-attachment: fixed;
+  min-height: 100vh;
   overflow-x: hidden;
 }
 
@@ -135,13 +134,9 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image:
-    radial-gradient(circle at 15% 20%, rgba(255, 225, 128, 0.1), transparent 28%),
-    radial-gradient(circle at 85% 10%, rgba(253, 249, 240, 0.08), transparent 24%),
-    radial-gradient(circle at 50% 82%, rgba(159, 144, 101, 0.12), transparent 30%);
-  filter: blur(14px);
+  background: rgba(20, 80, 40, 0.55);
   pointer-events: none;
-  opacity: 0.9;
+  z-index: 0;
 }
 
 a {
@@ -153,6 +148,8 @@ a {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
 }
 
 .navbar-layout {

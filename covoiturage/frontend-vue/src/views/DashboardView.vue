@@ -74,9 +74,6 @@ watch(
   () => trajetStore.selectedModel,
   () => {
     resetCarPhotoStep()
-    if (!isCustomModel.value && photoUrl.value) {
-      trajetStore.carPhotoUrl = photoUrl.value
-    }
   }
 )
 
@@ -135,7 +132,6 @@ const submitTrajet = async () => {
       ...newTrajet.value,
       car_category: trajetStore.selectedCategory,
       car_model: trajetStore.selectedModel,
-      car_photo_url: trajetStore.carPhotoUrl,
       carPhotoFile: trajetStore.carPhotoFile,
     }
 

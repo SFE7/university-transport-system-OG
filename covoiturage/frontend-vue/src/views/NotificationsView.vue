@@ -42,6 +42,13 @@ const notifications = computed(() => notificationStore.notifications)
         >
           Marquer comme lu
         </button>
+        <button
+          class="danger-btn"
+          type="button"
+          @click="notificationStore.remove(notification.id)"
+        >
+          Supprimer
+        </button>
       </div>
     </div>
     <div v-else class="empty-state">Aucune notification pour le moment.</div>
@@ -117,8 +124,24 @@ const notifications = computed(() => notificationStore.notifications)
   transition: all 0.2s ease;
 }
 
+.danger-btn {
+  margin-left: 12px;
+  background: transparent;
+  color: #f0b7b1;
+  border: 1px solid rgba(240, 183, 177, 0.35);
+  border-radius: 999px;
+  font-weight: 700;
+  padding: 10px 24px;
+  transition: all 0.2s ease;
+}
+
 .primary-btn:hover {
   background: #9f9065;
+  color: #fdf9f0;
+}
+
+.danger-btn:hover {
+  background: rgba(240, 183, 177, 0.12);
   color: #fdf9f0;
 }
 

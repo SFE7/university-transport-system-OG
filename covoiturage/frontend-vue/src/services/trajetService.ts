@@ -35,7 +35,11 @@ const create = async (payload: CreateTrajetPayload): Promise<ApiResponse<Trajet>
     available_seats: payload.available_seats,
     car_category: payload.car_category,
     car_model: payload.car_model,
-    car_photo_url: payload.car_photo_url ?? null,
+  }
+
+  // Only include `car_photo_url` when it is explicitly provided (not null/undefined)
+  if (payload.car_photo_url != null) {
+    ;(requestBody as any).car_photo_url = payload.car_photo_url
   }
 
   if (payload.carPhotoFile) {

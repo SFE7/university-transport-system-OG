@@ -16,6 +16,7 @@ class Notification extends Model
         'membre_id',
         'message',
         'type',
+        'target_role',
         'is_read',
     ];
 

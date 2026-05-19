@@ -5,7 +5,9 @@ namespace App\Services;
 
 use App\Models\IncidentBus;
 use App\Models\Membre;
+use App\Models\Notification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class IncidentBusService
 {
@@ -18,8 +20,33 @@ class IncidentBusService
 
     public function create(array $data, Membre $actor): IncidentBus
     {
-        $payload = array_merge(['reported_by' => $actor->id], $data);
-        return IncidentBus::create($payload);
+        return DB::transaction(function () use ($data, $actor): IncidentBus {
+            $incident = IncidentBus::create(array_merge(['reported_by' => $actor->id], $data))
+                ->load(['ligne:id,name', 'reporter:id,name']);
+
+            $lineName = $incident->ligne?->name ?? 'ligne inconnue';
+            $reporterName = $incident->reporter?->name ?? 'Utilisateur inconnu';
+            $message = sprintf(
+                'Incident bus #%d sur la ligne %s. Type: %s. Description: %s. Signalé par: %s.',
+                $incident->id,
+                $lineName,
+                $incident->type,
+                $incident->description,
+                $reporterName
+            );
+
+            foreach (Membre::where('role', 'membre')->pluck('id') as $membreId) {
+                Notification::create([
+                    'membre_id' => $membreId,
+                    'message' => $message,
+                    'type' => 'incident_reported',
+                    'target_role' => 'membre',
+                    'is_read' => false,
+                ]);
+            }
+
+            return $incident;
+        });
     }
 
     public function resolve(IncidentBus $incident, Membre $actor): IncidentBus

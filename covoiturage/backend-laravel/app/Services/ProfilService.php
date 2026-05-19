@@ -6,6 +6,8 @@ namespace App\Services;
 
 use App\Models\Membre;
 use App\Models\Vehicule;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 
 class ProfilService
 {
@@ -21,16 +23,23 @@ class ProfilService
         return $membre;
     }
 
-    public function updateVehicule(Membre $conducteur, array $data): Vehicule
+    public function updateVehicule(Membre $conducteur, array $data, ?UploadedFile $photo = null): Vehicule
     {
+        $payload = [
+            'marque' => $data['marque'],
+            'modele' => $data['modele'],
+            'immatriculation' => $data['immatriculation'],
+            'couleur' => $data['couleur'] ?? null,
+        ];
+
+        if ($photo) {
+            $path = $photo->store('vehicules', 'public');
+            $payload['photo_url'] = Storage::url($path);
+        }
+
         return Vehicule::updateOrCreate(
             ['conducteur_id' => $conducteur->id],
-            [
-                'marque' => $data['marque'],
-                'modele' => $data['modele'],
-                'immatriculation' => $data['immatriculation'],
-                'couleur' => $data['couleur'] ?? null,
-            ]
+            $payload
         );
     }
 }

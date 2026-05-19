@@ -28,6 +28,7 @@ class UpdateVehiculeRequest extends FormRequest
                 Rule::unique('vehicules', 'immatriculation')->ignore($vehiculeId),
             ],
             'couleur' => 'nullable|string|max:50',
+            'photo' => 'nullable|image|max:2048',
         ];
     }
 }

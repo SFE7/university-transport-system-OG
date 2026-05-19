@@ -27,4 +27,11 @@ class NotificationService
 
         return $notification;
     }
+
+    public function delete(Notification $notification, Membre $actor): void
+    {
+        abort_if($notification->membre_id !== $actor->id, 403);
+
+        $notification->delete();
+    }
 }

@@ -80,6 +80,7 @@ const routes = [
     meta: { requiresAuth: true, allowedRoles: ['admin'] },
   },
   { path: '/admin/lignes', component: () => import('@/views/AdminDashboardView.vue'), meta: { requiresAuth: true, allowedRoles: ['admin'] } },
+  { path: '/admin/notifications', component: () => import('@/views/AdminNotificationsView.vue'), meta: { requiresAuth: true, allowedRoles: ['admin'] } },
   { path: '/admin/incidents', component: () => import('@/views/AdminDashboardView.vue'), meta: { requiresAuth: true, allowedRoles: ['admin'] } },
   { path: '/admin/chauffeurs', component: () => import('@/views/AdminDashboardView.vue'), meta: { requiresAuth: true, allowedRoles: ['admin'] } },
   { path: '/admin/arrets', component: () => import('@/views/AdminDashboardView.vue'), meta: { requiresAuth: true, allowedRoles: ['admin'] } },

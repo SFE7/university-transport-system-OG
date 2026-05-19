@@ -42,8 +42,17 @@ const form = reactive({ marque: '', modele: '', immatriculation: '' })
 const photo = ref<HTMLInputElement | null>(null)
 
 const submit = async () => {
-  const payload = { marque: form.marque, modele: form.modele, immatriculation: form.immatriculation }
-  await profil.updateVehicule(payload)
+  const fd = new FormData()
+  fd.append('marque', form.marque)
+  fd.append('modele', form.modele)
+  fd.append('immatriculation', form.immatriculation)
+  if ((photo.value && photo.value.files && photo.value.files[0])) {
+    fd.append('photo', photo.value.files[0])
+  }
+  // Laravel method spoofing for PUT
+  fd.append('_method', 'PUT')
+
+  await profil.updateVehicule(fd)
   router.push('/profil')
 }
 </script>

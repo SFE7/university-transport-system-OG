@@ -20,6 +20,7 @@ class Vehicule extends Model
         'modele',
         'immatriculation',
         'couleur',
+        'photo_url',
     ];
 
     public function conducteur(): BelongsTo

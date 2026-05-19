@@ -24,7 +24,8 @@ class TrajetService
     {
         $this->autoCompleteExpired();
 
-        $query = Trajet::with(['conducteur']);
+        $query = Trajet::with(['conducteur'])
+            ->where('status', 'active');
 
         if (isset($filters['departure_point'])) {
             $query->where('departure_point', 'LIKE', '%' . $filters['departure_point'] . '%');
@@ -42,7 +43,7 @@ class TrajetService
             $query->where('available_seats', '>=', $filters['available_seats']);
         }
 
-        return $query->paginate(15);
+        return $query->paginate(10);
     }
 
     public function getOne(int $id): Trajet
