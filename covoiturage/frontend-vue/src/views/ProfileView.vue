@@ -196,6 +196,18 @@ const changePassword = async () => {
 
 .primary-btn {
   justify-self: start;
+  background: #ffe180;
+  color: #1b3d2f;
+  border: none;
+  border-radius: 999px;
+  font-weight: 700;
+  padding: 12px 24px;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.primary-btn:hover {
+  background: #f3d66e;
+  transform: translateY(-1px);
 }
 
 .error-message {

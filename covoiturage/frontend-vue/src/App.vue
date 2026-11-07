@@ -63,7 +63,7 @@ const handleLogout = async () => {
             <RouterLink v-if="authStore.membre?.role === 'membre'" to="/chauffeur/bus/schedules">Horaires</RouterLink>
             <!-- Comparer feature removed -->
           </template>
-          <RouterLink v-if="authStore.isAuthenticated" to="/profil">Mon profil</RouterLink>
+          <RouterLink v-if="authStore.isAuthenticated" to="/profil">Profil</RouterLink>
         </nav>
       </header>
 
