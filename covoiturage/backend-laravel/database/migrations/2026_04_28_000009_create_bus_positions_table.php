@@ -1,0 +1,27 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('bus_positions', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('chauffeur_id')->constrained('membres')->cascadeOnDelete()->unique();
+            $table->decimal('latitude', 10, 7);
+            $table->decimal('longitude', 10, 7);
+            $table->boolean('is_sharing')->default(false);
+            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('bus_positions');
+    }
+};
